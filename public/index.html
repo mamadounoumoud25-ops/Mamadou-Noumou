@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="UJAD">
+    <link rel="apple-touch-icon" href="/icon-512.png">
+    <link rel="manifest" href="manifest.json">
+    <title>U.J.A.D.L.S - Gestion des Membres</title>
+    <link rel="icon" type="image/png" href="/icon-512.png">
+    <link rel="stylesheet" href="style.css?v=1.5">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Theme Failsafe: Apply immediately to prevent flash
+        const savedTheme = localStorage.getItem('ujad_theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+
+<body>
+    <!-- Premium Background Decorations -->
+    <div class="mesh-gradient-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+    <!-- App Screen (comes first in DOM so it starts at y=0) -->
+    <div id="app-screen" class="hidden">
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+        <div class="app-layout">
+            <aside class="sidebar glass" id="sidebar">
+                <div class="sidebar-header">
+                    <div class="brand"
+                        style="justify-content: center; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+                        <img src="logo.png" alt="UJAD Logo"
+                            style="width: 50px; height: 50px; border-radius: 10px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);">
+                        <h3 style="font-size: 1.2rem; color: white;">U.J.A.D.L.S</h3>
+                    </div>
+                </div>
+                <nav id="sidebar-nav" class="vertical-nav">
+                    <div class="nav-item active" data-page="dashboard">📊 Tableau de Bord</div>
+                    <div class="nav-item" data-page="members">👥 Membres</div>
+                    <div class="nav-item" data-page="meetings">📅 Réunions</div>
+                    <div class="nav-item" data-page="cotisations">💰 Cotisations</div>
+                    <div class="nav-item" data-page="amandes">⚠️ Amandes</div>
+                    <div class="nav-item" data-page="depenses">💸 Dépenses</div>
+                    <div class="nav-item admin-only hidden" data-page="audit">🕵️ Historique Admin</div>
+                    <div class="nav-item" data-page="reglement">📜 Règlement</div>
+                    <div class="logout-container">
+                        <div class="nav-item" id="backup-btn" style="color: #34d399; font-size: 0.9rem;">⬇️ Sauvegarder
+                            (DB)</div>
+                        <div class="nav-item logout-link" id="logout-btn" style="color: var(--danger);">🚪 Déconnexion
+                        </div>
+                    </div>
+                </nav>
+            </aside>
+
+            <main class="main-content">
+                <header class="app-header glass">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <button id="menu-toggle" class="btn-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="3" y1="12" x2="21" y2="12"></line>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                                <line x1="3" y1="18" x2="21" y2="18"></line>
+                            </svg>
+                        </button>
+                        <h2 id="page-title">Tableau de Bord</h2>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <div class="theme-switch-wrapper" style="position: relative; top: 0; right: 0;">
+                            <label class="theme-switch" for="checkbox">
+                                <input type="checkbox" id="checkbox" />
+                                <div class="slider round"></div>
+                            </label>
+                            <span style="font-size: 0.8rem; color: var(--text-dim);">Mode</span>
+                        </div>
+                        <div id="user-info"></div>
+                    </div>
+                </header>
+
+                <!-- Dashboard -->
+                <section id="page-dashboard">
+                    <div class="dashboard-sections">
+                        <div class="stats-grid"
+                            style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+                            <div class="stat-card glass">
+                                <div class="stat-label">Total Membres</div>
+                                <div class="stat-value" id="stat-total-members" style="font-size: 1.8rem;">-</div>
+                            </div>
+                            <div class="stat-card glass">
+                                <div class="stat-label">Membres Actifs</div>
+                                <div class="stat-value" id="stat-active-members" style="font-size: 1.8rem;">-</div>
+                            </div>
+                            <div class="stat-card glass">
+                                <div class="stat-label">Caisse (Solde Net)</div>
+                                <div class="stat-value" id="stat-net" style="color: #818cf8; font-size: 1.8rem;">-</div>
+                            </div>
+                            <div class="stat-card glass">
+                                <div class="stat-label">Total Recettes</div>
+                                <div class="stat-value" id="stat-total-finance"
+                                    style="color: #4ade80; font-size: 1.8rem;">-</div>
+                            </div>
+                            <div class="stat-card glass">
+                                <div class="stat-label">Reste à Recouvrer</div>
+                                <div class="stat-value" id="stat-total-reste"
+                                    style="color: #f87171; font-size: 1.8rem;">-</div>
+                            </div>
+                            <div class="stat-card glass">
+                                <div class="stat-label">Total Inscriptions</div>
+                                <div class="stat-value" id="stat-total-inscriptions"
+                                    style="color: #818cf8; font-size: 1.8rem;">-</div>
+                            </div>
+                            <div class="stat-card glass">
+                                <div class="stat-label">Total Amandes</div>
+                                <div class="stat-value" id="stat-total-amandes"
+                                    style="color: #fbbf24; font-size: 1.8rem;">-</div>
+                            </div>
+                            <div class="stat-card glass">
+                                <div class="stat-label">Amandes Réunion</div>
+                                <div class="stat-value" id="stat-am-reunion" style="color: #fbbf24; font-size: 1.8rem;">
+                                    -</div>
+                            </div>
+                            <div class="stat-card glass">
+                                <div class="stat-label">Amandes Travail</div>
+                                <div class="stat-value" id="stat-am-travail" style="color: #fbbf24; font-size: 1.8rem;">
+                                    -</div>
+                            </div>
+                            <div class="stat-card glass">
+                                <div class="stat-label">Amandes Indiscipline</div>
+                                <div class="stat-value" id="stat-am-indiscipline"
+                                    style="color: #fbbf24; font-size: 1.8rem;">-</div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Announcements -->
+                    <div id="announcements-container" style="margin-top: 50px;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                            <h3 style="margin: 0; font-size: 1.5rem;">📢 Annonces de l'Association</h3>
+                            <button id="add-announcement-btn" class="btn-primary" onclick="showAddAnnouncementModal()"
+                                style="display: none; width: auto; font-size: 0.85rem; padding: 8px 16px;">+ Nouveau
+                                Message</button>
+                        </div>
+                        <div id="announcements-list" style="display: grid; gap: 20px;">
+                            <p style="color: var(--text-dim);">Chargement des annonces...</p>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 40px; text-align: center;">
+                        <button class="btn-primary" onclick="exportPDF()"
+                            style="width: auto; background: #3f3f46; border: 1px solid #52525b;">📄 Générer le Rapport
+                            PDF</button>
+                    </div>
+                </section>
+
+                <!-- Profile (non-admin) -->
+                <section id="page-profile" class="hidden">
+                    <div class="stats-grid">
+                        <div class="stat-card glass">
+                            <div class="stat-label">Mes Cotisations</div>
+                            <div class="stat-value" id="stat-my-cotis">-</div>
+                        </div>
+                        <div class="stat-card glass">
+                            <div class="stat-label">Mon Reste à Payer</div>
+                            <div class="stat-value" id="stat-my-reste" style="color: #f87171;">-</div>
+                        </div>
+                    </div>
+                    <div class="glass" style="padding: 24px; margin-top: 20px;">
+                        <h3>Mes Informations</h3>
+                        <div id="my-info-details"
+                            style="margin-top: 15px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); display: grid; gap: 20px; color: var(--text-dim);">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Members -->
+                <section id="page-members" class="hidden">
+                    <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn-primary" onclick="addMember()" style="width: auto;">+ Ajouter un
+                            membre</button>
+                        <button class="btn-primary btn-csv" onclick="exportTableToCSV('members-list', 'Membres.csv')"
+                            style="width: auto; background: #10b981;">⬇️ Export CSV</button>
+                        <input type="text" id="member-search" placeholder="Rechercher un membre..." class="modal-input"
+                            style="flex: 1; min-width: 200px; margin-top: 0;">
+                    </div>
+                    <div class="glass">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nom & Prénom</th>
+                                    <th>Téléphone</th>
+                                    <th>Statut</th>
+                                    <th>Rôle</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="members-list"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Meetings -->
+                <section id="page-meetings" class="hidden">
+                    <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn-primary" onclick="addMeeting()" style="width: auto;">+ Nouvelle
+                            Réunion</button>
+                        <button class="btn-primary btn-csv" onclick="exportTableToCSV('meetings-list', 'Reunions.csv')"
+                            style="width: auto; background: #10b981;">⬇️ Export CSV</button>
+                    </div>
+                    <div class="glass">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Thème</th>
+                                    <th>Lieu</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="meetings-list"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Cotisations -->
+                <section id="page-cotisations" class="hidden">
+                    <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn-primary" onclick="addCotis()" style="width: auto;">+ Enregistrer
+                            Paiement</button>
+                        <button class="btn-primary btn-csv" onclick="exportTableToCSV('cotis-list', 'Cotisations.csv')"
+                            style="width: auto; background: #10b981;">⬇️ Export CSV</button>
+                        <input type="text" id="cotis-search" placeholder="Rechercher une cotisation..."
+                            class="modal-input" style="flex: 1; min-width: 200px; margin-top: 0;">
+                    </div>
+                    <div class="glass">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Membre</th>
+                                    <th>Montant</th>
+                                    <th>Mois</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cotis-list"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Depenses -->
+                <section id="page-depenses" class="hidden">
+                    <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn-primary" onclick="addExpense()" style="width: auto;">+ Enregistrer une
+                            Dépense</button>
+                        <button class="btn-primary btn-csv" onclick="exportTableToCSV('expenses-list', 'Depenses.csv')"
+                            style="width: auto; background: #10b981;">⬇️ Export CSV</button>
+                        <input type="text" id="expense-search" placeholder="Rechercher une dépense..."
+                            class="modal-input" style="flex: 1; min-width: 200px; margin-top: 0;">
+                    </div>
+                    <div class="glass">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Montant</th>
+                                    <th>Catégorie</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenses-list"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Amandes -->
+                <section id="page-amandes" class="hidden">
+                    <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn-primary" onclick="addAmande()" style="width: auto;">+ Enregistrer une
+                            Amande</button>
+                        <button class="btn-primary btn-csv" onclick="exportTableToCSV('amandes-list', 'Amandes.csv')"
+                            style="width: auto; background: #10b981;">⬇️ Export CSV</button>
+                        <input type="text" id="amande-search" placeholder="Rechercher une amande..." class="modal-input"
+                            style="flex: 1; min-width: 200px; margin-top: 0;">
+                    </div>
+                    <div class="glass">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Membre</th>
+                                    <th>Type</th>
+                                    <th>Motif</th>
+                                    <th>Montant</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="amandes-list"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Audit Logs -->
+                <section id="page-audit" class="hidden">
+                    <div style="margin-bottom: 20px;">
+                        <input type="text" id="audit-search" placeholder="Rechercher une action..." class="modal-input"
+                            style="flex: 1; min-width: 200px; margin-top: 0;">
+                    </div>
+                    <div class="glass">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Admin</th>
+                                    <th>Action</th>
+                                    <th>Détails</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audit-list"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Reglement -->
+                <section id="page-reglement" class="hidden">
+                    <div class="reglement-grid"
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
+
+                        <div class="glass" style="padding: 25px;">
+                            <h3
+                                style="color: var(--primary); margin-bottom: 15px; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;">
+                                📜 Discipline & Réunions</h3>
+                            <ul style="list-style: none; padding: 0; font-size: 0.95rem; line-height: 1.6;">
+                                <li style="margin-bottom: 10px;">🚫 <b>Indiscipline :</b> (Bavardage, téléphone) →
+                                    Amande de <b>1 000 FG</b></li>
+                                <li style="margin-bottom: 10px;">👊 <b>Bagarre/Injure :</b> Amande de <b>50 000 FG</b> +
+                                    Exclusion de 1 mois.</li>
+                                <li style="margin-bottom: 10px;">⏰ <b>Réunions :</b> Début à 20h35 précises. Retard →
+                                    <b>1 000 FG</b>. Chômage → <b>2 000 FG</b>.
+                                </li>
+                                <li style="margin-bottom: 10px;">📍 <b>Inscription :</b> 7 000 FG. Cotisation dimanche →
+                                    2 000 FG.</li>
+                            </ul>
+                        </div>
+
+                        <div class="glass" style="padding: 25px;">
+                            <h3
+                                style="color: var(--warning); margin-bottom: 15px; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;">
+                                🛠️ Travaux de l'Association</h3>
+                            <ul style="list-style: none; padding: 0; font-size: 0.95rem; line-height: 1.6;">
+                                <li style="margin-bottom: 10px;">📅 <b>Participation :</b> Obligatoire chaque dimanche
+                                    (08h35 - 11h00).</li>
+                                <li style="margin-bottom: 10px;">📢 <b>Urgence :</b> Prévenir Abdoulaye, Oumou Sèrè ou
+                                    Mamadou Djouldé.</li>
+                                <li style="margin-bottom: 10px;">⚠️ <b>Retard :</b> Fixé à <b>2 000 FG</b>.</li>
+                                <li style="margin-bottom: 10px;">🚫 <b>Chômage :</b> Fixé à <b>5 000 FG</b>.</li>
+                            </ul>
+                        </div>
+
+                        <div class="glass" style="padding: 25px;">
+                            <h3
+                                style="color: #6366f1; margin-bottom: 15px; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;">
+                                ⚽ Sport & Cas Social</h3>
+                            <ul style="list-style: none; padding: 0; font-size: 0.95rem; line-height: 1.6;">
+                                <li style="margin-bottom: 10px;">👟 <b>Chaussures :</b> Fermées obligatoires sur le
+                                    terrain.</li>
+                                <li style="margin-bottom: 10px;">🩳 <b>Tenue :</b> Pantalon interdit lors de
+                                    l'entraînement.</li>
+                                <li style="margin-bottom: 10px;">❤️ <b>Social :</b> Participation obligatoire aux
+                                    travaux prévus.</li>
+                                <li style="margin-bottom: 10px;">🤝 <b>Contributions :</b> Volontaires pour les membres.
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="glass" style="padding: 25px;">
+                            <h3
+                                style="color: #4ade80; margin-bottom: 15px; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;">
+                                🏛️ Gouvernance</h3>
+                            <ul style="list-style: none; padding: 0; font-size: 0.95rem; line-height: 1.6;">
+                                <li style="margin-bottom: 10px;">⏱️ <b>Mandat :</b> Durée de 1 an, renouvelable une
+                                    seule fois.</li>
+                                <li style="margin-bottom: 10px;">👮 <b>Responsables :</b> Absence prolongée (3 sem) →
+                                    <b>20 000 FG</b>.
+                                </li>
+                                <li style="margin-bottom: 10px;">👥 <b>Membres :</b> Absence prolongée (3 sem) → <b>10
+                                        000 FG</b>.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Profil -->
+                <section id="page-profile" class="hidden">
+                    <div class="glass"
+                        style="max-width: 600px; margin: 0 auto; padding: 30px; border-radius: 12px; text-align: center;">
+                        <div id="profile-photo-container" style="margin-bottom: 20px;">
+                            <!-- Photo populated by JS -->
+                        </div>
+                        <h3 id="profile-name" style="color: var(--text-main); margin-bottom: 5px; font-size: 1.5rem;">
+                        </h3>
+                        <p id="profile-role"
+                            style="color: var(--primary); font-weight: bold; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px; font-size: 0.8rem;">
+                        </p>
+
+                        <div
+                            style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: left; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                            <div>
+                                <span
+                                    style="display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px;">Téléphone</span>
+                                <strong id="profile-phone" style="color: var(--text-main);"></strong>
+                            </div>
+                            <div>
+                                <span
+                                    style="display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px;">Statut</span>
+                                <span id="profile-status" class="badge"></span>
+                            </div>
+                        </div>
+
+                        <button class="btn-primary" onclick="editMyProfile()" style="width: 100%;">Modifier mes
+                            informations</button>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Auth Screen (comes after app-screen in DOM, and is position:fixed in CSS) -->
+    <div id="auth-screen" class="auth-container">
+        <div class="auth-card glass" style="text-align: center;">
+            <img src="logo.png" alt="UJAD Logo"
+                style="width: 80px; height: 80px; margin-bottom: 10px; border-radius: 15px; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);">
+            <h1>U.J.A.D.L.S</h1>
+            <p style="color: var(--text-dim); margin-bottom: 30px;">Gestion des Membres</p>
+            <form id="login-form">
+                <div class="input-group">
+                    <label>Téléphone ou Nom</label>
+                    <input type="text" id="login-id" placeholder="Entrez votre identifiant" required>
+                </div>
+                <div class="input-group">
+                    <label>Mot de passe</label>
+                    <input type="password" id="login-pass" placeholder="••••••••" required>
+                </div>
+                <div class="input-group">
+                    <button type="submit" class="btn-primary" id="login-btn">Se Connecter</button>
+                    <p style="margin-top: 15px; font-size: 0.8rem; color: var(--text-dim);">
+                        <a href="#" onclick="showRecoveryModal()"
+                            style="color: var(--primary); text-decoration: none;">Mot de passe oublié ?</a>
+                    </p>
+                </div>
+                <p id="login-error" style="color: #ef4444; margin-top: 15px;" class="hidden"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal-container" class="hidden"
+        style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 100;">
+        <div class="glass" style="width: 100%; max-width: 500px; padding: 30px;">
+            <h3 id="modal-title">Action</h3>
+            <div id="modal-content" style="margin-top: 20px;"></div>
+            <div style="margin-top: 30px; display: flex; gap: 10px;">
+                <button id="modal-submit" class="btn-primary">Valider</button>
+                <button id="modal-close" class="btn-primary" style="background: #334155;">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notifications -->
+    <div id="toast-container"
+        style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px;">
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="app.js?v=1.4"></script>
+</body>
+
+</html>
