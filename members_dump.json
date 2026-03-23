@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "nom": "UJAD",
+    "prenom": "Directeur",
+    "telephone": "611760045",
+    "role": "admin",
+    "statut": "actif"
+  },
+  {
+    "id": 2,
+    "nom": "Test",
+    "prenom": "User",
+    "telephone": "123456789",
+    "role": "membre",
+    "statut": "actif"
+  },
+  {
+    "id": 3,
+    "nom": "Browser",
+    "prenom": "User",
+    "telephone": "987654321",
+    "role": "membre",
+    "statut": "actif"
+  }
+]

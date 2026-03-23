@@ -6,3 +6,15 @@ ujad.db-wal
 DEPLOYER_SUR_NETLIFY/
 .DS_Store
 *.log
+db_dump.json
+check_*.js
+dump_*.js
+find_refs.js
+refactor.js
+migrate_and_cleanup.js
+cleanup_db.js
+final_verify.js
+test_*.js
+list_all_members.js
+check_all_membres.js
+check_admins_temp.js

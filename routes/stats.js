@@ -4,20 +4,20 @@ const db = require('../database');
 const { authenticate } = require('./auth');
 
 router.get('/stats', authenticate, async (req, res) => {
-    const totalMembres = await db.prepare('SELECT COUNT(*) as count FROM membres').get().count;
-    const totalActifs = await db.prepare("SELECT COUNT(*) as count FROM membres WHERE statut = 'actif'").get().count;
-    const totalFinances = await db.prepare('SELECT SUM(montant) as total FROM cotisations').get().total || 0;
-    const totalDepenses = await db.prepare('SELECT SUM(montant) as total FROM depenses').get().total || 0;
-    const totalAmandes = await db.prepare("SELECT SUM(montant) as total FROM amandes WHERE statut = 'paye'").get().total || 0;
-    const totalAmandesReunion = await db.prepare("SELECT SUM(montant) as total FROM amandes WHERE statut = 'paye' AND type = 'Réunion'").get().total || 0;
-    const totalAmandesTravail = await db.prepare("SELECT SUM(montant) as total FROM amandes WHERE statut = 'paye' AND type IN ('Travail', 'Sport', 'Social')").get().total || 0;
-    const totalAmandesIndiscipline = await db.prepare("SELECT SUM(montant) as total FROM amandes WHERE statut = 'paye' AND type = 'Indiscipline'").get().total || 0;
-    const totalInscriptions = await db.prepare("SELECT COUNT(*) * 7000 as total FROM membres WHERE inscription_payee = 1").get().total || 0;
+    const totalMembres = (await db.prepare('SELECT COUNT(*) as count FROM membres').get()).count;
+    const totalActifs = (await db.prepare("SELECT COUNT(*) as count FROM membres WHERE statut = 'actif'").get()).count;
+    const totalFinances = (await db.prepare('SELECT SUM(montant) as total FROM cotisations').get()).total || 0;
+    const totalDepenses = (await db.prepare('SELECT SUM(montant) as total FROM depenses').get()).total || 0;
+    const totalAmandes = (await db.prepare("SELECT SUM(montant) as total FROM amandes WHERE statut = 'paye'").get()).total || 0;
+    const totalAmandesReunion = (await db.prepare("SELECT SUM(montant) as total FROM amandes WHERE statut = 'paye' AND type = 'Réunion'").get()).total || 0;
+    const totalAmandesTravail = (await db.prepare("SELECT SUM(montant) as total FROM amandes WHERE statut = 'paye' AND type IN ('Travail', 'Sport', 'Social')").get()).total || 0;
+    const totalAmandesIndiscipline = (await db.prepare("SELECT SUM(montant) as total FROM amandes WHERE statut = 'paye' AND type = 'Indiscipline'").get()).total || 0;
+    const totalInscriptions = (await db.prepare("SELECT COUNT(*) * 7000 as total FROM membres WHERE inscription_payee = 1").get()).total || 0;
 
     const rows = await db.prepare('SELECT montant, montant_total FROM cotisations').all();
     const totalResteCotis = rows.reduce((sum, row) => sum + ((row.montant_total || row.montant) - row.montant), 0);
 
-    const totalAmandesDues = await db.prepare("SELECT SUM(montant) as total FROM amandes WHERE statut = 'du'").get().total || 0;
+    const totalAmandesDues = (await db.prepare("SELECT SUM(montant) as total FROM amandes WHERE statut = 'du'").get()).total || 0;
 
     const totalRecettes = totalFinances + totalAmandes + totalInscriptions;
 

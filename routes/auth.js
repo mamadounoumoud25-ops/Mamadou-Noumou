@@ -20,8 +20,10 @@ const authenticate = async (req, res, next) => {
 };
 
 router.post('/login', async (req, res) => {
-    const { telephone, password } = req.body;
+    let { telephone, password } = req.body;
     if (!telephone || !password) return res.status(400).json({ error: 'Téléphone et mot de passe requis' });
+    
+    telephone = telephone.trim();
 
     // Allow login by phone number OR by full name
     const user = await db.prepare(
