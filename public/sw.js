@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ujad-v5';
+const CACHE_NAME = 'ujad-v6';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -13,7 +13,7 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('[SW] Caching static assets');
+            console.log('[SW] Mise en cache des ressources statiques');
             return cache.addAll(STATIC_ASSETS);
         })
     );
@@ -29,7 +29,7 @@ self.addEventListener('activate', (event) => {
                     cacheNames
                         .filter(name => name !== CACHE_NAME)
                         .map(name => {
-                            console.log('[SW] Deleting old cache:', name);
+                            console.log('[SW] Suppression de l\'ancien cache :', name);
                             return caches.delete(name);
                         })
                 );

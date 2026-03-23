@@ -287,7 +287,7 @@ function showModal(title, html, onSave, hideSubmit = false) {
             closeModal();
         } catch (err) {
             console.error(err);
-            showToast('Une erreur est survenue', 'error');
+            showToast(err.message || 'Une erreur est survenue', 'error');
         } finally {
             newBtn.textContent = originalText;
             newBtn.disabled = false;
@@ -373,8 +373,13 @@ window.editMyProfile = () => {
         formData.append('nom', u.nom);
         formData.append('prenom', u.prenom);
 
-        await fetchAPI(`/api/members/${u.id}`, { method: 'PUT', body: formData });
-        checkToken(); // Refresh data
+        try {
+            await fetchAPI(`/api/members/${u.id}`, { method: 'PUT', body: formData });
+            showToast('Profil mis à jour !', 'success');
+            checkToken(); // Refresh data
+        } catch (err) {
+            throw err;
+        }
     });
 };
 
@@ -424,7 +429,7 @@ async function navigateTo(page) {
         'members': 'Membres',
         'meetings': 'Réunions',
         'cotisations': 'Cotisations',
-        'amandes': 'Amandes',
+        'amandes': 'Amendes',
         'depenses': 'Dépenses',
         'audit': 'Historique Admin',
         'reglement': 'Règlement',
@@ -582,37 +587,58 @@ async function loadMemberProfile() {
     }
 }
 
-async function loadMembers() {
-    const data = await fetchAPI('/api/members');
-    state.data.members = data;
-    renderMembers(data);
+async function loadMembers(page = 1) {
+    const list = document.getElementById('members-list');
+    if (list) list.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-dim);">Chargement des membres...</td></tr>';
+    
+    try {
+        const data = await fetchAPI('/api/members');
+        state.data.members = data;
+        renderMembers(data, page);
+    } catch (err) {
+        if (list) list.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--danger);">Erreur lors du chargement</td></tr>';
+        throw err;
+    }
 }
 function renderMembers(items, page = 1) {
     const list = document.getElementById('members-list');
+    if (!list) return;
+
+    if (items.length === 0) {
+        list.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-dim);">Aucun membre trouvé</td></tr>';
+        return;
+    }
+
     const { paginatedItems, totalPages } = paginate(items, page, 'members');
 
-    list.innerHTML = paginatedItems.map(m => `
-        <tr>
-            <td data-label="Membre">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    ${m.photo_url ? `<img src="${m.photo_url}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">` : `<div style="width:30px;height:30px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:0.8rem;">${m.prenom[0]}${m.nom[0]}</div>`}
-                    ${m.prenom} ${m.nom}
-                </div>
-            </td>
-            <td data-label="Contact">${m.telephone || '-'}</td>
-            <td data-label="Statut">
-                <span class="badge ${m.statut}">${m.statut}</span>
-                <span class="badge ${m.inscription_payee ? 'paid' : 'due'}" style="font-size: 0.65rem;">${m.inscription_payee ? 'Inscrit' : 'Non-Inscrit'}</span>
-            </td>
-            <td data-label="Rôle">${m.role}</td>
-            <td data-label="Actions">
-                <button class="btn-small" onclick="editMember(${m.id})">Modif</button>
-                <button class="btn-small btn-danger" onclick="deleteMember(${m.id})">Del</button>
-            </td>
-        </tr>
-    `).join('');
+    list.innerHTML = paginatedItems.map(m => {
+        const prenom = m.prenom || '';
+        const nom = m.nom || '';
+        const initiales = (prenom[0] || '?') + (nom[0] || '');
+        
+        return `
+            <tr>
+                <td data-label="Membre">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        ${m.photo_url ? `<img src="${m.photo_url}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">` : `<div style="width:30px;height:30px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:0.8rem;">${initiales}</div>`}
+                        ${prenom} ${nom}
+                    </div>
+                </td>
+                <td data-label="Contact">${m.telephone || '-'}</td>
+                <td data-label="Statut">
+                    <span class="badge ${m.statut || 'actif'}">${m.statut || 'actif'}</span>
+                    <span class="badge ${m.inscription_payee ? 'paid' : 'due'}" style="font-size: 0.65rem;">${m.inscription_payee ? 'Inscrit' : 'Non-Inscrit'}</span>
+                </td>
+                <td data-label="Rôle">${m.role || 'membre'}</td>
+                <td data-label="Actions">
+                    <button class="btn-small" onclick="editMember(${m.id})">Modifier</button>
+                    <button class="btn-small btn-danger" onclick="deleteMember(${m.id})">Suppr</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
 
-    renderPaginationControls(document.getElementById('members-list').parentElement, totalPages, page, 'members', items);
+    renderPaginationControls(list.parentElement, totalPages, page, 'members', items);
 }
 
 async function loadCotisations() {
@@ -640,7 +666,7 @@ function renderCotisations(items, page = 1) {
                 <td data-label="Date">${c.date_paiement}</td>
                 <td data-label="Actions">
                     <button class="btn-small" style="background:#6366f1;color:white" onclick="generateReceiptPDF('cotisation', '${c.prenom} ${c.nom}', ${c.montant}, '${c.mois}', '${c.date_paiement}')">Reçu</button>
-                    ${isAdmin ? `<button class="btn-small" onclick="editCotis(${c.id})">Modif</button>` : ''}
+                    ${isAdmin ? `<button class="btn-small" onclick="editCotis(${c.id})">Modifier</button>` : ''}
                     ${reste > 0 ? `<button class="btn-small" style="background:#25d366;color:white" onclick="remindWhatsApp('${c.telephone}', ${reste}, '${c.mois}')">WhatsApp</button>` : ''}
                 </td>
             </tr>
@@ -666,8 +692,8 @@ function renderExpenses(items, page = 1) {
             <td data-label="Montant" style="color:#f87171">${e.montant.toLocaleString()} FG</td>
             <td data-label="Catégorie">${e.categorie || '-'}</td>
             <td data-label="Actions">
-                ${isAdmin ? `<button class="btn-small" onclick="editExpense(${e.id})">Modif</button>` : ''}
-                ${isAdmin ? `<button class="btn-small btn-danger" onclick="deleteExpense(${e.id})">Del</button>` : ''}
+                ${isAdmin ? `<button class="btn-small" onclick="editExpense(${e.id})">Modifier</button>` : ''}
+                ${isAdmin ? `<button class="btn-small btn-danger" onclick="deleteExpense(${e.id})">Suppr</button>` : ''}
             </td>
         </tr>
     `).join('');
@@ -694,8 +720,8 @@ function renderMeetings(items, page = 1) {
             <td data-label="Actions">
                 <button class="btn-small" onclick="markAttendance(${m.id})">Présences</button>
                 ${isAdmin ? `
-                    <button class="btn-small" onclick="editMeeting(${m.id})">Modif</button>
-                    <button class="btn-small btn-danger" onclick="deleteMeeting(${m.id})">Del</button>
+                    <button class="btn-small" onclick="editMeeting(${m.id})">Modifier</button>
+                    <button class="btn-small btn-danger" onclick="deleteMeeting(${m.id})">Suppr</button>
                 ` : ''}
             </td>
         </tr>
@@ -782,7 +808,7 @@ function renderAmandes(items, page = 1) {
                 ${a.statut === 'paye' ? `<button class="btn-small" style="background:#6366f1;color:white" onclick="generateReceiptPDF('amande', '${a.prenom} ${a.nom}', ${a.montant}, '${a.motif}', '${a.date}')">Reçu</button>` : ''}
                 ${isAdmin && a.statut === 'du' ? `
                     <button class="btn-small" onclick="payAmande(${a.id})">Régler</button>
-                    <button class="btn-small btn-danger" onclick="deleteAmande(${a.id})">Del</button>
+                    <button class="btn-small btn-danger" onclick="deleteAmande(${a.id})">Suppr</button>
                 ` : (a.statut === 'du' ? '-' : '')}
             </td>
         </tr>
@@ -791,7 +817,7 @@ function renderAmandes(items, page = 1) {
 }
 
 window.payAmande = (id) => {
-    showConfirm('Confirmation', 'Marquer cette amande comme payée ?', async () => {
+    showConfirm('Confirmation', 'Marquer cette amende comme payée ?', async () => {
         await fetchAPI(`/api/amandes/${id}/pay`, { method: 'PUT' });
         loadAmandes();
         loadStats();
@@ -799,7 +825,7 @@ window.payAmande = (id) => {
 };
 
 window.deleteAmande = (id) => {
-    showConfirm('Confirmation', 'Supprimer cette amande ?', async () => {
+    showConfirm('Confirmation', 'Supprimer cette amende ?', async () => {
         await fetchAPI(`/api/amandes/${id}`, { method: 'DELETE' });
         loadAmandes();
         loadStats();
@@ -808,7 +834,7 @@ window.deleteAmande = (id) => {
 
 window.addAmande = async () => {
     const members = await fetchAPI('/api/members');
-    showModal('Enregistrer une Amande', `
+    showModal('Enregistrer une Amende', `
         <form id="amande-form" class="modal-grid">
             <div class="full-width">
                 <label class="input-label">Membre</label>
@@ -816,8 +842,8 @@ window.addAmande = async () => {
                     ${members.map(m => `<option value="${m.id}">${m.prenom} ${m.nom}</option>`).join('')}
                 </select>
             </div>
-            <div>
-                <label class="input-label">Type</label>
+            <div class="full-width">
+                <label class="input-label">Type d'Amende</label>
                 <select id="a-type" class="modal-input">
                     <option value="Réunion">Réunion</option>
                     <option value="Travail">Travail</option>
@@ -848,9 +874,14 @@ window.addAmande = async () => {
             montant: parseFloat(document.getElementById('a-montant').value),
             date: document.getElementById('a-date').value
         };
-        await fetchAPI('/api/amandes', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
-        loadAmandes();
-        loadStats();
+        try {
+            await fetchAPI('/api/amandes', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+            showToast('Amende enregistrée !', 'success');
+            loadAmandes();
+            loadStats();
+        } catch (err) {
+            throw err;
+        }
     });
 };
 
@@ -947,7 +978,11 @@ window.remindWhatsApp = (phone, amount, month) => {
 async function fetchAPI(url, opt = {}) {
     const res = await fetch(url, opt);
     if (res.status === 401) return handleLogout();
-    return res.json();
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(data.error || 'Une erreur est survenue');
+    }
+    return data;
 }
 
 // --- Action Handlers ---
@@ -987,8 +1022,19 @@ window.addMember = () => {
         const fileInput = document.getElementById('m-photo');
         if (fileInput.files.length > 0) formData.append('photo', fileInput.files[0]);
 
-        await fetchAPI('/api/members', { method: 'POST', body: formData });
-        loadMembers();
+        try {
+            await fetchAPI('/api/members', { method: 'POST', body: formData });
+            showToast('Membre ajouté avec succès !', 'success');
+            const data = await fetchAPI('/api/members');
+            state.data.members = data;
+            const searchInput = document.getElementById('member-search');
+            if (searchInput) searchInput.value = ''; // Clear search to see new member
+            const lastPage = Math.ceil(data.length / state.pagination.itemsPerPage) || 1;
+            renderMembers(data, lastPage);
+            loadStats();
+        } catch (err) {
+            throw err; 
+        }
     });
 };
 
@@ -1032,8 +1078,14 @@ window.editMember = async (id) => {
         const fileInput = document.getElementById('m-photo');
         if (fileInput.files.length > 0) formData.append('photo', fileInput.files[0]);
 
-        await fetchAPI(`/api/members/${id}`, { method: 'PUT', body: formData });
-        loadMembers();
+        try {
+            await fetchAPI(`/api/members/${id}`, { method: 'PUT', body: formData });
+            showToast('Membre mis à jour !', 'success');
+            loadMembers(state.pagination.members);
+            loadStats();
+        } catch (err) {
+            throw err;
+        }
     });
 };
 
@@ -1049,9 +1101,14 @@ window.addCotis = async () => {
         </form>
     `, async () => {
         const body = { memberId: document.getElementById('c-member').value, montant: parseFloat(document.getElementById('c-montant').value), montantTotal: parseFloat(document.getElementById('c-total').value), mois: document.getElementById('c-mois').value, date: document.getElementById('c-date').value };
-        await fetchAPI('/api/cotis', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
-        loadCotisations();
-        loadStats();
+        try {
+            await fetchAPI('/api/cotis', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+            showToast('Paiement enregistré !', 'success');
+            loadCotisations();
+            loadStats();
+        } catch (err) {
+            throw err;
+        }
     });
 };
 
@@ -1145,8 +1202,13 @@ window.addMeeting = () => {
             lieu: document.getElementById('mt-lieu').value,
             type: document.getElementById('mt-type').value
         };
-        await fetchAPI('/api/meetings', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
-        loadMeetings();
+        try {
+            await fetchAPI('/api/meetings', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+            showToast('Activité créée !', 'success');
+            loadMeetings();
+        } catch (err) {
+            throw err;
+        }
     });
 };
 
@@ -1184,8 +1246,13 @@ window.editMeeting = async (id) => {
             lieu: document.getElementById('mt-lieu').value,
             type: document.getElementById('mt-type').value
         };
-        await fetchAPI(`/api/meetings/${id}`, { method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
-        loadMeetings();
+        try {
+            await fetchAPI(`/api/meetings/${id}`, { method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+            showToast('Activité mise à jour !', 'success');
+            loadMeetings();
+        } catch (err) {
+            throw err;
+        }
     });
 };
 
@@ -1232,9 +1299,14 @@ window.addExpense = () => {
             date: document.getElementById('ex-date').value,
             categorie: document.getElementById('ex-categorie').value || null
         };
-        await fetchAPI('/api/expenses', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
-        loadExpenses();
-        loadStats();
+        try {
+            await fetchAPI('/api/expenses', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+            showToast('Dépense enregistrée !', 'success');
+            loadExpenses();
+            loadStats();
+        } catch (err) {
+            throw err;
+        }
     });
 };
 
@@ -1285,9 +1357,14 @@ window.editExpense = async (id) => {
             date: document.getElementById('ex-date').value,
             categorie: document.getElementById('ex-categorie').value || null
         };
-        await fetchAPI(`/api/expenses/${id}`, { method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
-        loadExpenses();
-        loadStats();
+        try {
+            await fetchAPI(`/api/expenses/${id}`, { method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+            showToast('Dépense mise à jour !', 'success');
+            loadExpenses();
+            loadStats();
+        } catch (err) {
+            throw err;
+        }
     });
 };
 
@@ -1347,8 +1424,13 @@ window.showAddAnnouncementModal = () => {
             importance: document.getElementById('ann-imp').value,
             date: document.getElementById('ann-date').value
         };
-        await fetchAPI('/api/announcements', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
-        loadAnnouncements();
+        try {
+            await fetchAPI('/api/announcements', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+            showToast('Annonce publiée !', 'success');
+            loadAnnouncements();
+        } catch (err) {
+            throw err;
+        }
     });
 };
 
@@ -1383,9 +1465,14 @@ window.editCotis = async (id) => {
         </form>
     `, async () => {
         const body = { memberId: document.getElementById('c-member').value, montant: parseFloat(document.getElementById('c-montant').value), montantTotal: parseFloat(document.getElementById('c-total').value), mois: c.mois, date: c.date_paiement };
-        await fetchAPI(`/api/cotis/${id}`, { method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
-        loadCotisations();
-        loadStats();
+        try {
+            await fetchAPI(`/api/cotis/${id}`, { method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+            showToast('Paiement mis à jour !', 'success');
+            loadCotisations();
+            loadStats();
+        } catch (err) {
+            throw err;
+        }
     });
 };
 
