@@ -11,7 +11,7 @@ services:
     startCommand: node server.js
     envVars:
       - key: NODE_VERSION
-        value: 18.16.0
+        value: 20.12.2
       - key: JWT_SECRET
         sync: false
       - key: RECOVERY_KEY
