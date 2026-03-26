@@ -1,8 +1,0 @@
-node_modules/
-.env
-ujad.db
-ujad.db-shm
-ujad.db-wal
-DEPLOYER_SUR_NETLIFY/
-.DS_Store
-*.log
