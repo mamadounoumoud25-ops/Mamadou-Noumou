@@ -1,5 +1,4 @@
 const { Pool } = require('pg');
-const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 require('dotenv').config();
@@ -80,6 +79,7 @@ if (usePostgres) {
     }
   };
 } else {
+  const Database = require('better-sqlite3');
   const dbPath = process.env.DB_PATH || path.join(__dirname, 'ujad.db');
   const sqliteDb = new Database(dbPath);
   sqliteDb.pragma('journal_mode = WAL');
