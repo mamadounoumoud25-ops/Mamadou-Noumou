@@ -26,15 +26,38 @@ router.delete('/announcements/:id', authenticate, async (req, res) => {
     res.json({ success: true });
 });
 
-// --- Backup API ---
+// --- Backup API (Universal JSON Export) ---
 router.get('/backup', authenticate, async (req, res) => {
     if (req.user.role !== 'admin') return res.status(403).json({ error: 'Action non autorisée' });
-    const dbPath = path.join(__dirname, '../ujad.db');
-    res.download(dbPath, `backup_ujad_${new Date().toISOString().split('T')[0]}.db`, (err) => {
-        if (err) {
-            console.error("Erreur téléchargement backup:", err);
+    
+    try {
+        const backupData = {
+            metadata: {
+                version: '1.0',
+                date: new Date().toISOString(),
+                project: 'U.J.A.D.L.S'
+            },
+            data: {}
+        };
+
+        const tables = ['membres', 'reunions', 'presences', 'cotisations', 'depenses', 'annonces', 'amandes', 'audit_logs'];
+        
+        for (const table of tables) {
+            try {
+                backupData.data[table] = await db.prepare(`SELECT * FROM ${table}`).all();
+            } catch (e) {
+                console.warn(`[Backup] Table ${table} impossible à lire:`, e.message);
+                backupData.data[table] = [];
+            }
         }
-    });
+
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename=sauvegarde_ujad_${new Date().toISOString().split('T')[0]}.json`);
+        res.send(JSON.stringify(backupData, null, 2));
+    } catch (err) {
+        console.error("Erreur backup général:", err);
+        res.status(500).json({ error: 'Échec de la génération de la sauvegarde de sécurité' });
+    }
 });
 
 module.exports = router;

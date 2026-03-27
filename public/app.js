@@ -187,11 +187,15 @@ async function handleBackup() {
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = `backup_ujad_${new Date().toISOString().split('T')[0]}.db`;
+        
+        const contentType = response.headers.get('content-type');
+        const ext = contentType && contentType.includes('application/json') ? 'json' : 'db';
+        
+        a.download = `sauvegarde_ujad_${new Date().toISOString().split('T')[0]}.${ext}`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
-        showToast('Sauvegarde de la base de données réussie', 'success');
+        showToast('Sauvegarde réussie (Format ' + ext.toUpperCase() + ')', 'success');
     } catch (err) {
         showToast(err.message, 'error');
     }
