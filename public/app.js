@@ -695,6 +695,9 @@ function renderExpenses(items, page = 1) {
             <td data-label="Description">${e.description}</td>
             <td data-label="Montant" style="color:#f87171">${e.montant.toLocaleString()} FG</td>
             <td data-label="Catégorie">${e.categorie || '-'}</td>
+            <td data-label="Justificatif">
+                ${e.receipt_url ? `<button class="btn-small" style="background:#6366f1;color:white" onclick="window.open('${e.receipt_url}', '_blank')">📄 Voir</button>` : '<span style="color:var(--text-dim);font-size:0.8rem;">-</span>'}
+            </td>
             <td data-label="Actions">
                 ${isAdmin ? `<button class="btn-small" onclick="editExpense(${e.id})">Modifier</button>` : ''}
                 ${isAdmin ? `<button class="btn-small btn-danger" onclick="deleteExpense(${e.id})">Suppr</button>` : ''}
@@ -1303,16 +1306,23 @@ window.addExpense = () => {
                     <option value="Autre">Autre</option>
                 </select>
             </div>
+            <div class="full-width">
+                <label class="input-label">Justificatif (Photo de reçu)</label>
+                <input type="file" id="ex-photo" accept="image/*" class="modal-input" style="padding: 8px;">
+            </div>
         </form>
     `, async () => {
-        const body = {
-            description: document.getElementById('ex-desc').value,
-            montant: parseFloat(document.getElementById('ex-montant').value),
-            date: document.getElementById('ex-date').value,
-            categorie: document.getElementById('ex-categorie').value || null
-        };
+        const formData = new FormData();
+        formData.append('description', document.getElementById('ex-desc').value);
+        formData.append('montant', document.getElementById('ex-montant').value);
+        formData.append('date', document.getElementById('ex-date').value);
+        formData.append('categorie', document.getElementById('ex-categorie').value);
+        
+        const fileInput = document.getElementById('ex-photo');
+        if (fileInput.files.length > 0) formData.append('receipt', fileInput.files[0]);
+
         try {
-            await fetchAPI('/api/expenses', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+            await fetchAPI('/api/expenses', { method: 'POST', body: formData });
             showToast('Dépense enregistrée !', 'success');
             loadExpenses();
             loadStats();
@@ -1361,16 +1371,24 @@ window.editExpense = async (id) => {
                     <option value="Autre" ${e.categorie === 'Autre' ? 'selected' : ''}>Autre</option>
                 </select>
             </div>
+            <div class="full-width">
+                ${e.receipt_url ? `<div style="margin-bottom:10px;"><img src="${e.receipt_url}" style="width:50px;height:50px;border-radius:8px;object-fit:cover;"></div>` : ''}
+                <label class="input-label">Changer le justificatif</label>
+                <input type="file" id="ex-photo" accept="image/*" class="modal-input" style="padding: 8px;">
+            </div>
         </form>
     `, async () => {
-        const body = {
-            description: document.getElementById('ex-desc').value,
-            montant: parseFloat(document.getElementById('ex-montant').value),
-            date: document.getElementById('ex-date').value,
-            categorie: document.getElementById('ex-categorie').value || null
-        };
+        const formData = new FormData();
+        formData.append('description', document.getElementById('ex-desc').value);
+        formData.append('montant', document.getElementById('ex-montant').value);
+        formData.append('date', document.getElementById('ex-date').value);
+        formData.append('categorie', document.getElementById('ex-categorie').value);
+        
+        const fileInput = document.getElementById('ex-photo');
+        if (fileInput.files.length > 0) formData.append('receipt', fileInput.files[0]);
+
         try {
-            await fetchAPI(`/api/expenses/${id}`, { method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+            await fetchAPI(`/api/expenses/${id}`, { method: 'PUT', body: formData });
             showToast('Dépense mise à jour !', 'success');
             loadExpenses();
             loadStats();

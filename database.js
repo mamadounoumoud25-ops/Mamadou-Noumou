@@ -59,6 +59,7 @@ if (usePostgres) {
       };
 
       await safeAddColumn('depenses', 'categorie', 'TEXT DEFAULT NULL');
+      await safeAddColumn('depenses', 'receipt_url', 'TEXT DEFAULT NULL');
       await safeAddColumn('cotisations', 'montant_total', 'REAL DEFAULT NULL');
       await safeAddColumn('membres', 'photo_url', 'TEXT DEFAULT NULL');
 
@@ -106,6 +107,7 @@ if (usePostgres) {
       };
 
       safeAddColumn('depenses', 'categorie', 'TEXT DEFAULT NULL');
+      safeAddColumn('depenses', 'receipt_url', 'TEXT DEFAULT NULL');
       safeAddColumn('cotisations', 'montant_total', 'REAL DEFAULT NULL');
       safeAddColumn('membres', 'photo_url', 'TEXT DEFAULT NULL');
 
@@ -177,7 +179,8 @@ const finalDbClient = {
         description TEXT NOT NULL,
         montant REAL NOT NULL,
         date TEXT NOT NULL,
-        categorie TEXT DEFAULT NULL
+        categorie TEXT DEFAULT NULL,
+        receipt_url TEXT DEFAULT NULL
       );
 
       CREATE TABLE IF NOT EXISTS annonces (
