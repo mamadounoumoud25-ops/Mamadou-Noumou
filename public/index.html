@@ -318,7 +318,8 @@
 
                 <!-- Audit Logs -->
                 <section id="page-audit" class="hidden">
-                    <div style="margin-bottom: 20px;">
+                    <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn-primary btn-danger" onclick="clearAuditLogs()" style="width: auto; background: #ef4444;">🗑️ Vider l'historique</button>
                         <input type="text" id="audit-search" placeholder="Rechercher une action..." class="modal-input"
                             style="flex: 1; min-width: 200px; margin-top: 0;">
                     </div>

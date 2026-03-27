@@ -917,6 +917,14 @@ function renderAuditLogs(items, page = 1) {
     renderPaginationControls(document.getElementById('audit-list').parentElement, totalPages, page, 'audit', items);
 }
 
+window.clearAuditLogs = () => {
+    showConfirm('Attention', 'Voulez-vous vraiment effacer tout l\'historique administrateur ? Cette action est irréversible.', async () => {
+        await fetchAPI('/api/audit', { method: 'DELETE' });
+        showToast('Historique effacé', 'success');
+        loadAuditLogs();
+    });
+};
+
 // --- Pagination Utility ---
 function paginate(items, page, type) {
     state.pagination[type] = page;

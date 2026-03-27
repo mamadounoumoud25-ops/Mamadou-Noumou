@@ -43,5 +43,15 @@ router.get('/', authenticate, async (req, res) => {
     const logs = await db.prepare('SELECT * FROM audit_logs ORDER BY id DESC LIMIT 100').all();
     res.json(logs);
 });
+// Route to clear audit logs
+router.delete('/', authenticate, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Action non autorisée' });
+    try {
+        await db.prepare('DELETE FROM audit_logs').run();
+        res.json({ message: 'Historique effacé avec succès' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 module.exports = { router, logAction };
