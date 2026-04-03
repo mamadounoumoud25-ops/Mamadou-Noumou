@@ -461,6 +461,7 @@ async function loadStats() {
         document.getElementById('stat-total-members').textContent = data.totalMembres;
         document.getElementById('stat-active-members').textContent = data.totalActifs;
         document.getElementById('stat-total-finance').textContent = `${data.totalFinances.toLocaleString()} FG`;
+        document.getElementById('stat-total-depenses').textContent = `${data.totalDepenses.toLocaleString()} FG`;
         document.getElementById('stat-total-reste').textContent = `${data.totalReste.toLocaleString()} FG`;
         document.getElementById('stat-net').textContent = `${data.soldeNet.toLocaleString()} FG`;
         document.getElementById('stat-total-inscriptions').textContent = `${data.totalInscriptions.toLocaleString()} FG`;
