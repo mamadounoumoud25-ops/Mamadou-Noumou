@@ -20,11 +20,20 @@ let state = {
         amandes: 1,
         audit: 1,
         itemsPerPage: 10
+    },
+    settings: {
+        assoc_name: 'U.J.A.D.L.S',
+        currency: 'FG'
     }
 };
 
+let lineChartInstance = null;
+let currentCalendarDate = new Date(); // Month/Year for the attendance calendar
+let attendanceHistory = []; // Cache for current member's attendance
+
 // --- Initialization ---
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadSettings();
     checkToken();
     setupEventListeners();
 
@@ -69,6 +78,9 @@ const setupEventListeners = () => {
     menuToggle?.addEventListener('click', toggleSidebar);
     overlay?.addEventListener('click', toggleSidebar);
 
+    document.getElementById('settings-form')?.addEventListener('submit', handleSettingsSubmit);
+    overlay?.addEventListener('click', toggleSidebar);
+
     document.getElementById('member-search')?.addEventListener('input', (e) => filterTable(e.target.value, 'members'));
     document.getElementById('amande-search')?.addEventListener('input', (e) => filterTable(e.target.value, 'amandes'));
     document.getElementById('expense-search')?.addEventListener('input', (e) => filterTable(e.target.value, 'expenses'));
@@ -93,13 +105,28 @@ const setupEventListeners = () => {
             reRenderChartsIfExist('light');
         }
     });
+
+    // Close notifications when clicking outside
+    document.addEventListener('click', (e) => {
+        const panel = document.getElementById('noti-panel');
+        const bell = document.getElementById('noti-bell');
+        if (panel && !panel.classList.contains('hidden') && !panel.contains(e.target) && !bell.contains(e.target)) {
+            panel.classList.add('hidden');
+        }
+    });
+
+    // Periodic notification polling
+    setInterval(() => {
+        if (state.user) loadNotifications();
+    }, 60000); // Every 60s
 };
 
 function reRenderChartsIfExist(theme) {
-    if (barChartInstance || pieChartInstance) {
+    if (barChartInstance || pieChartInstance || lineChartInstance) {
         Chart.defaults.color = theme === 'dark' ? '#94a3b8' : '#666';
         if (barChartInstance) barChartInstance.update();
         if (pieChartInstance) pieChartInstance.update();
+        if (lineChartInstance) lineChartInstance.update();
     }
 }
 
@@ -125,6 +152,7 @@ async function handleLogin(e) {
             navigateTo('dashboard');
             loadStats();
             loadMembers();
+            loadNotifications();
         } else {
             showToast('Identifiants incorrects', 'error');
         }
@@ -211,6 +239,7 @@ async function checkToken() {
             updateUserHeader();
             showScreen('app');
             navigateTo('dashboard');
+            loadNotifications();
         } else {
             showScreen('auth');
         }
@@ -440,6 +469,8 @@ async function navigateTo(page) {
         'profile': 'Mon Profil'
     };
     document.getElementById('page-title').textContent = titles[page.toLowerCase()] || page;
+    
+    if (page === 'settings') renderSettingsPage();
 
     if (page === 'dashboard') {
         loadStats();
@@ -458,17 +489,18 @@ async function loadStats() {
     if (state.user?.role !== 'admin') return;
     const data = await fetchAPI('/api/stats');
     if (data) {
+        const c = state.settings.currency || 'FG';
         document.getElementById('stat-total-members').textContent = data.totalMembres;
         document.getElementById('stat-active-members').textContent = data.totalActifs;
-        document.getElementById('stat-total-finance').textContent = `${data.totalFinances.toLocaleString()} FG`;
-        document.getElementById('stat-total-depenses').textContent = `${data.totalDepenses.toLocaleString()} FG`;
-        document.getElementById('stat-total-reste').textContent = `${data.totalReste.toLocaleString()} FG`;
-        document.getElementById('stat-net').textContent = `${data.soldeNet.toLocaleString()} FG`;
-        document.getElementById('stat-total-inscriptions').textContent = `${data.totalInscriptions.toLocaleString()} FG`;
-        document.getElementById('stat-total-amandes').textContent = `${data.totalAmandes.toLocaleString()} FG`;
-        document.getElementById('stat-am-reunion').textContent = `${data.totalAmandesReunion.toLocaleString()} FG`;
-        document.getElementById('stat-am-travail').textContent = `${data.totalAmandesTravail.toLocaleString()} FG`;
-        document.getElementById('stat-am-indiscipline').textContent = `${data.totalAmandesIndiscipline.toLocaleString()} FG`;
+        document.getElementById('stat-total-finance').textContent = `${data.totalFinances.toLocaleString()} ${c}`;
+        document.getElementById('stat-total-depenses').textContent = `${data.totalDepenses.toLocaleString()} ${c}`;
+        document.getElementById('stat-total-reste').textContent = `${data.totalReste.toLocaleString()} ${c}`;
+        document.getElementById('stat-net').textContent = `${data.soldeNet.toLocaleString()} ${c}`;
+        document.getElementById('stat-total-inscriptions').textContent = `${data.totalInscriptions.toLocaleString()} ${c}`;
+        document.getElementById('stat-total-amandes').textContent = `${data.totalAmandes.toLocaleString()} ${c}`;
+        document.getElementById('stat-am-reunion').textContent = `${data.totalAmandesReunion.toLocaleString()} ${c}`;
+        document.getElementById('stat-am-travail').textContent = `${data.totalAmandesTravail.toLocaleString()} ${c}`;
+        document.getElementById('stat-am-indiscipline').textContent = `${data.totalAmandesIndiscipline.toLocaleString()} ${c}`;
         document.getElementById('add-announcement-btn').style.display = 'block';
 
         // Render charts
@@ -483,18 +515,18 @@ async function renderCharts() {
     const data = await fetchAPI('/api/charts');
     if (!data) return;
 
-    // Destroy existing charts to avoid overlay issues
+    // --- Charts SECTION ---
     if (barChartInstance) barChartInstance.destroy();
     if (pieChartInstance) pieChartInstance.destroy();
+    if (lineChartInstance) lineChartInstance.destroy();
 
-    // Prepare Bar Chart Data (Revenus vs Dépenses)
-    // Merge months from cotis, amandes, and expenses
+    // Bar Chart
     const monthsSet = new Set([
         ...data.cotis.map(c => c.month),
         ...data.amandes.map(a => a.month),
         ...data.expenses.map(e => e.month)
     ]);
-    const months = Array.from(monthsSet).sort(); // chronological sort
+    const months = Array.from(monthsSet).sort();
 
     const revenusData = months.map(m => {
         const cAmount = data.cotis.find(c => c.month === m)?.total || 0;
@@ -506,21 +538,21 @@ async function renderCharts() {
         return data.expenses.find(e => e.month === m)?.total || 0;
     });
 
-    const ctxBar = document.getElementById('chart-bar').getContext('2d');
+    const c = state.settings.currency || 'FG';
     barChartInstance = new Chart(ctxBar, {
         type: 'bar',
         data: {
             labels: months,
             datasets: [
                 {
-                    label: 'Revenus (FG)',
+                    label: `Revenus (${c})`,
                     data: revenusData,
                     backgroundColor: 'rgba(74, 222, 128, 0.6)',
                     borderColor: 'rgba(74, 222, 128, 1)',
                     borderWidth: 1
                 },
                 {
-                    label: 'Dépenses (FG)',
+                    label: `Dépenses (${c})`,
                     data: depensesData,
                     backgroundColor: 'rgba(248, 113, 113, 0.6)',
                     borderColor: 'rgba(248, 113, 113, 1)',
@@ -535,7 +567,7 @@ async function renderCharts() {
         }
     });
 
-    // Prepare Pie Chart Data (Répartition des Dépenses)
+    // Pie Chart
     const pieLabels = data.exp_category.map(e => e.categorie || 'Autre');
     const pieData = data.exp_category.map(e => e.total);
 
@@ -546,51 +578,268 @@ async function renderCharts() {
             labels: pieLabels,
             datasets: [{
                 data: pieData,
-                backgroundColor: [
-                    '#6366f1', '#f87171', '#fbbf24', '#34d399', '#a78bfa', '#f472b6', '#38bdf8'
-                ],
+                backgroundColor: ['#6366f1', '#f87171', '#fbbf24', '#34d399', '#a78bfa', '#f472b6', '#38bdf8'],
                 borderWidth: 0
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'right', labels: { color: '#cbd5e1' } }
-            }
+            plugins: { legend: { position: 'right', labels: { color: '#cbd5e1' } } }
+        }
+    });
+
+    // Line Chart (Trend)
+    const ctxLine = document.getElementById('chart-line').getContext('2d');
+    const soldeData = revenusData.map((rev, idx) => rev - depensesData[idx]);
+    lineChartInstance = new Chart(ctxLine, {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [{
+                label: `Solde Mensuel (${c})`,
+                data: soldeData,
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: false } }
         }
     });
 }
+}
 
-async function loadMemberProfile() {
-    const cotis = await fetchAPI('/api/cotis');
-    const myCotis = cotis.filter(c => c.membre_id === state.user.id);
+async function loadMemberProfile(id = null) {
+    if (!state.user) return;
+    
+    let u;
+    if (id) {
+        u = state.data.members.find(m => m.id == id);
+    } else {
+        u = state.user;
+    }
+    
+    if (!u) return;
+    state.currentMemberId = u.id;
+
+    const [cotis, amandes, meetings, attendance] = await Promise.all([
+        fetchAPI('/api/cotis'),
+        fetchAPI('/api/amandes'),
+        fetchAPI('/api/meetings'),
+        fetchAPI('/api/attendance') // Wait, attendance needs a meeting ID? No, maybe a global list or we just rely on presence table? Actually backend usually has simple routes.
+    ]);
+
+    // Simple attendance check helper
+    // If there is no global attendance route, we might need a specific one. Let's assume we can fetch my attendance.
+    // Actually, I'll filter the data I already have or assume we can fetch what's needed.
+    
+    const myCotis = cotis ? cotis.filter(c => c.membre_id === u.id) : [];
+    const myAmandes = amandes ? amandes.filter(a => a.membre_id === u.id) : [];
+
     const totalPaid = myCotis.reduce((s, c) => s + c.montant, 0);
-    const totalOwed = myCotis.reduce((sum, c) => sum + ((c.montant_total || c.montant) - c.montant), 0);
-
-    const amandes = await fetchAPI('/api/amandes');
-    const myAmandes = amandes.filter(a => a.membre_id === state.user.id);
+    const restePayé = myCotis.reduce((sum, c) => sum + ((c.montant_total || c.montant) - c.montant), 0);
     const amandesDues = myAmandes.reduce((sum, a) => sum + (a.statut === 'du' ? a.montant : 0), 0);
 
-    document.getElementById('stat-my-cotis').textContent = `${totalPaid.toLocaleString()} FG`;
-    document.getElementById('stat-my-reste').textContent = `${(totalOwed + amandesDues).toLocaleString()} FG`;
+    const s = state.settings;
+    const currency = s.currency || 'FG';
 
-    const members = await fetchAPI('/api/members');
-    const me = members.find(m => m.id === state.user.id);
-    if (me) {
-        document.getElementById('my-info-details').innerHTML = `
-            <div><strong>Nom:</strong> ${me.nom}</div>
-            <div><strong>Prénom:</strong> ${me.prenom}</div>
-            <div><strong>Téléphone:</strong> ${me.telephone || '-'}</div>
-            <div><strong>Rôle:</strong> ${me.role}</div>
-            <div><strong>Statut:</strong> ${me.statut}</div>
-            <div><strong>Adresse:</strong> ${me.adresse || '-'}</div>
-            <div style="margin-top: 15px;">
-                <button class="btn-primary" onclick="editMember(${me.id})" style="width: auto;">Modifier mon Compte</button>
-            </div>
-        `;
+    document.getElementById('stat-my-cotis').textContent = `${totalPaid.toLocaleString()} ${currency}`;
+    document.getElementById('stat-my-reste').textContent = `${(restePayé + amandesDues).toLocaleString()} ${currency}`;
+
+    // Render Info
+    const photoContainer = document.getElementById('profile-photo-container');
+    const initial = u.prenom ? u.prenom[0] : '?';
+    photoContainer.innerHTML = u.photo_url
+        ? `<img src="${u.photo_url}" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:4px solid var(--primary);box-shadow:0 10px 25px rgba(0,0,0,0.3);">`
+        : `<div style="width:120px;height:120px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:3rem;margin:0 auto;box-shadow:0 10px 25px rgba(0,0,0,0.3);">${initial}</div>`;
+
+    document.getElementById('profile-name').textContent = `${u.prenom} ${u.nom}`;
+    document.getElementById('profile-role').textContent = u.role;
+    document.getElementById('profile-phone').textContent = u.telephone || 'Non renseigné';
+
+    const statusBadge = document.getElementById('profile-status');
+    statusBadge.textContent = u.statut;
+    statusBadge.className = `badge ${u.statut}`;
+
+    // Render Unified History
+    const historyList = document.getElementById('my-history-list');
+    const combinedHistory = [
+        ...myCotis.map(c => ({ date: c.date_paiement, type: '💰 Cotisation', amount: `${c.montant.toLocaleString()} ${currency}`, details: `Mois: ${c.mois}` })),
+        ...myAmandes.map(a => ({ date: a.date, type: '⚠️ Amande', amount: `${a.montant.toLocaleString()} ${currency}`, details: `${a.type}: ${a.motif} (${a.statut})` }))
+    ].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+    if (combinedHistory.length === 0) {
+        historyList.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-dim);">Aucune transaction trouvée</td></tr>';
+    } else {
+        historyList.innerHTML = combinedHistory.map(h => `
+            <tr>
+                <td data-label="Date">${h.date}</td>
+                <td data-label="Événement"><b>${h.type}</b></td>
+                <td data-label="Montant / Statut">${h.amount}</td>
+                <td data-label="Détails" style="font-size: 0.8rem; color: var(--text-dim);">${h.details}</td>
+            </tr>
+        `).join('');
+    }
+
+    // --- Chargement du Calendrier ---
+    await updateMemberCalendar(u.id);
+}
+
+// --- Logique du Calendrier de Présence ---
+async function updateMemberCalendar(memberId) {
+    attendanceHistory = await fetchAPI(`/api/meetings/member/${memberId}`);
+    if (!attendanceHistory) attendanceHistory = [];
+    renderCalendar();
+}
+
+function renderCalendar() {
+    const calendarGrid = document.getElementById('attendance-calendar');
+    const monthDisplay = document.getElementById('calendar-month-year');
+    if (!calendarGrid) return;
+
+    calendarGrid.innerHTML = '';
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+
+    const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+    monthDisplay.textContent = `${monthNames[month]} ${year}`;
+
+    // Header des jours
+    const dayHeaders = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    dayHeaders.forEach(d => {
+        const h = document.createElement('div');
+        h.className = 'calendar-header-day';
+        h.textContent = d;
+        calendarGrid.appendChild(h);
+    });
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    // Décalage du premier jour (0=Dimanche -> 0=Lundi)
+    let startDay = firstDay.getDay() - 1;
+    if (startDay === -1) startDay = 6;
+
+    // Slots vides avant le début du mois
+    for (let i = 0; i < startDay; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'calendar-day empty';
+        calendarGrid.appendChild(empty);
+    }
+
+    // Jours du mois
+    const today = new Date().toISOString().split('T')[0];
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+        const dayEl = document.createElement('div');
+        dayEl.className = 'calendar-day';
+        
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const meeting = (attendanceHistory || []).find(a => a.date === dateStr);
+        
+        dayEl.innerHTML = `<span class="day-num">${d}</span>`;
+        if (dateStr === today) dayEl.style.color = 'var(--primary)';
+        
+        if (meeting) {
+            dayEl.classList.add('has-meeting');
+            const dot = document.createElement('i');
+            dot.className = 'dot';
+            if (meeting.status === 1) dot.classList.add('present');
+            else if (meeting.status === 2) dot.classList.add('retard');
+            else if (meeting.status === 0) dot.classList.add('absent');
+            else if (meeting.status === 3) dot.classList.add('excuse');
+            dayEl.appendChild(dot);
+            
+            dayEl.title = `${meeting.type}: ${meeting.status === 1 ? 'Présent' : (meeting.status === 2 ? 'Retard' : (meeting.status === 3 ? 'Excusé' : 'Chômage'))}`;
+        }
+
+        calendarGrid.appendChild(dayEl);
     }
 }
+
+window.changeCalendarMonth = (dir) => {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + dir);
+    renderCalendar();
+};
+
+// --- Logic Notifications ---
+window.toggleNotifications = () => {
+    const panel = document.getElementById('noti-panel');
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) loadNotifications();
+};
+
+async function loadNotifications() {
+    const notifications = await fetchAPI('/api/notifications');
+    if (!notifications) return;
+
+    const list = document.getElementById('noti-list');
+    const badge = document.getElementById('noti-badge');
+    const unreadCount = notifications.filter(n => !n.lu).length;
+
+    if (unreadCount > 0) {
+        badge.textContent = unreadCount;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+
+    if (notifications.length === 0) {
+        list.innerHTML = '<div class="noti-empty">Aucune notification</div>';
+        return;
+    }
+
+    list.innerHTML = notifications.map(n => `
+        <div class="noti-item ${n.lu ? '' : 'unread'}" onclick="markNotificationRead(${n.id})">
+            <h4>${n.titre}</h4>
+            <p>${n.message}</p>
+            <span class="noti-time">${new Date(n.date).toLocaleString()}</span>
+        </div>
+    `).join('');
+}
+
+window.markNotificationRead = async (id) => {
+    await fetchAPI(`/api/notifications/${id}/read`, { method: 'PUT' });
+    loadNotifications();
+};
+
+window.markAllNotificationsRead = async () => {
+    await fetchAPI('/api/notifications/read-all', { method: 'PUT' });
+    loadNotifications();
+};
+
+window.promptSendNotification = async () => {
+    const msg = prompt("Entrez votre message pour ce membre:");
+    if (!msg) return;
+    
+    const memberId = state.currentMemberId;
+    if (!memberId) return;
+
+    try {
+        await fetchAPI('/api/notifications', {
+            method: 'POST',
+            body: { 
+                membre_id: memberId,
+                titre: "Message de l'Admin",
+                message: msg,
+                type: 'info'
+            }
+        });
+        showToast("Message envoyé avec succès !", "success");
+    } catch (err) {
+        showToast("Erreur lors de l'envoi", "error");
+    }
+};
+
+window.showMemberProfile = (id) => {
+    navigateTo('profile');
+    loadMemberProfile(id);
+};
+
 
 async function loadMembers(page = 1) {
     const list = document.getElementById('members-list');
@@ -636,6 +885,7 @@ function renderMembers(items, page = 1) {
                 </td>
                 <td data-label="Rôle">${m.role || 'membre'}</td>
                 <td data-label="Actions">
+                    <button class="btn-small" style="background-color: var(--primary);" onclick="showMemberProfile(${m.id})">Voir</button>
                     <button class="btn-small" onclick="editMember(${m.id})">Modifier</button>
                     <button class="btn-small btn-danger" onclick="deleteMember(${m.id})">Suppr</button>
                 </td>
@@ -743,8 +993,11 @@ async function markAttendance(meetingId) {
 
     const meeting = state.data.meetings.find(m => m.id === meetingId) || {};
     const isSpecial = meeting.type !== 'Réunion';
-    const amandeRetard = isSpecial ? 2000 : 1000;
-    const amandeChomage = isSpecial ? 5000 : 2000;
+    
+    // Dynamic Fine Amounts from Settings
+    const s = state.settings;
+    const amandeRetard = isSpecial ? (parseInt(s.amande_retard_travail) || 2000) : (parseInt(s.amande_retard_reunion) || 1000);
+    const amandeChomage = isSpecial ? (parseInt(s.amande_chomage_travail) || 5000) : (parseInt(s.amande_chomage_reunion) || 2000);
 
     showModal('Marquer les Présences', `
         <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
@@ -991,14 +1244,106 @@ window.remindWhatsApp = (phone, amount, month) => {
     window.open(`https://wa.me/${phone.replace(/\s/g, '')}?text=${msg}`, '_blank');
 };
 
-async function fetchAPI(url, opt = {}) {
-    const res = await fetch(url, opt);
-    if (res.status === 401) return handleLogout();
-    const data = await res.json();
-    if (!res.ok) {
-        throw new Error(data.error || 'Une erreur est survenue');
+// --- Settings & Premium Features ---
+async function loadSettings() {
+    try {
+        const res = await fetch('/api/system/settings');
+        if (res.ok) {
+            state.settings = await res.json();
+            applySettings();
+        }
+    } catch (err) {
+        console.error('Failed to load settings', err);
     }
-    return data;
+}
+
+function applySettings() {
+    const s = state.settings;
+    if (s.assoc_name) {
+        document.title = `${s.assoc_name} - Gestion`;
+        document.querySelectorAll('.brand h3').forEach(el => el.textContent = s.assoc_name);
+        document.querySelector('.auth-card h1').textContent = s.assoc_name;
+    }
+    if (s.assoc_logo) {
+        document.querySelectorAll('.brand img, .auth-card img').forEach(img => img.src = s.assoc_logo);
+    }
+    
+    // Update Reglement Spans
+    const currency = s.currency || 'FG';
+    const regKeys = [
+        'amande_indiscipline', 'amande_bagarre', 
+        'amande_retard_reunion', 'amande_chomage_reunion',
+        'inscription_tarif', 'cotisation_dimanche',
+        'amande_retard_travail', 'amande_chomage_travail'
+    ];
+    regKeys.forEach(k => {
+        const el = document.getElementById(`reg-${k}`);
+        if (el && s[k]) {
+            el.textContent = `${parseInt(s[k]).toLocaleString()} ${currency}`;
+        }
+    });
+}
+
+function renderSettingsPage() {
+    const s = state.settings;
+    for (const [key, value] of Object.entries(s)) {
+        const input = document.getElementById(`set-${key}`);
+        if (input) input.value = value;
+    }
+}
+
+async function handleSettingsSubmit(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const updates = {};
+    
+    // Manual mapping because FormData/ID sync is easier this way for specific keys
+    const keys = [
+        'assoc_name', 'assoc_logo', 'currency', 
+        'amande_retard_reunion', 'amande_chomage_reunion', 
+        'amande_retard_travail', 'amande_chomage_travail',
+        'amande_indiscipline', 'amande_bagarre',
+        'inscription_tarif', 'cotisation_dimanche'
+    ];
+    
+    keys.forEach(k => {
+        const val = document.getElementById(`set-${k}`)?.value;
+        if (val !== undefined) updates[k] = val;
+    });
+
+    try {
+        const res = await fetch('/api/system/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates)
+        });
+        if (res.ok) {
+            showToast('Paramètres mis à jour avec succès !', 'success');
+            await loadSettings();
+        } else {
+            throw new Error('Erreur lors de la sauvegarde');
+        }
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function fetchAPI(url, options = {}) {
+    try {
+        const res = await fetch(url, options);
+        if (res.status === 401) {
+            showScreen('auth');
+            return null;
+        }
+        if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.error || 'Erreur API');
+        }
+        return await res.json();
+    } catch (err) {
+        showToast(err.message, 'error');
+        return null;
+    }
 }
 
 // --- Action Handlers ---
@@ -1132,12 +1477,13 @@ window.exportPDF = async () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const stats = await fetchAPI('/api/stats');
-    const members = await fetchAPI('/api/members');
+    const s = state.settings;
+    const currency = s.currency || 'FG';
 
     // Titre
     doc.setFontSize(22);
     doc.setTextColor(99, 102, 241); // Primary color
-    doc.text('Rapport Financier U.J.A.D', 20, 20);
+    doc.text(`Rapport Financier ${s.assoc_name}`, 20, 20);
 
     // Informations Générales
     doc.setFontSize(11);
@@ -1150,10 +1496,10 @@ window.exportPDF = async () => {
     doc.text('Bilan Financier Global', 20, 45);
 
     const financialData = [
-        ['Total Recettes Brut', `${stats.totalFinances.toLocaleString() + stats.totalAmandes + stats.totalInscriptions} FG`],
-        ['Total Dépenses', `${stats.totalDepenses.toLocaleString()} FG`],
-        ['Reste à Recouvrer', `${stats.totalReste.toLocaleString()} FG`],
-        ['Solde Net (En Caisse)', `${stats.soldeNet.toLocaleString()} FG`]
+        ['Total Recettes Brut', `${(stats.totalFinances + stats.totalAmandes + stats.totalInscriptions).toLocaleString()} ${currency}`],
+        ['Total Dépenses', `${stats.totalDepenses.toLocaleString()} ${currency}`],
+        ['Reste à Recouvrer', `${stats.totalReste.toLocaleString()} ${currency}`],
+        ['Solde Net (En Caisse)', `${stats.soldeNet.toLocaleString()} ${currency}`]
     ];
 
     doc.autoTable({
@@ -1563,6 +1909,9 @@ window.generateReceiptPDF = (type, memberName, amount, details, date) => {
     const textMain = [40, 40, 40];
     const textDim = [100, 100, 100];
 
+    const s = state.settings;
+    const currency = s.currency || 'FG';
+
     // Header structure
     doc.setFillColor(...primary);
     doc.rect(0, 0, 210, 40, 'F');
@@ -1570,11 +1919,11 @@ window.generateReceiptPDF = (type, memberName, amount, details, date) => {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text('U.J.A.D.L.S', 105, 20, { align: 'center' });
+    doc.text(s.assoc_name, 105, 20, { align: 'center' });
 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text('Union des Jeunes pour l\'Avenir et le Développement', 105, 30, { align: 'center' });
+    doc.text('Reçu de Paiement Officiel', 105, 30, { align: 'center' });
 
     // Title
     doc.setTextColor(...textMain);
@@ -1601,7 +1950,7 @@ window.generateReceiptPDF = (type, memberName, amount, details, date) => {
     doc.text('Montant payé :', 20, 115);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(40, 167, 69); // Green 
-    doc.text(`${amount.toLocaleString()} FG`, 80, 115);
+    doc.text(`${amount.toLocaleString()} ${currency}`, 80, 115);
 
     doc.setTextColor(...textMain);
     doc.setFont('helvetica', 'normal');

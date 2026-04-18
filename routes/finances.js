@@ -134,6 +134,15 @@ router.post('/amandes', authenticate, async (req, res) => {
     if (!membre_id || montant === undefined || !motif || !date) return res.status(400).json({ error: 'Membre, motif, montant et date sont requis' });
     if (isNaN(montant) || Number(montant) <= 0) return res.status(400).json({ error: 'Le montant doit être un nombre positif' });
     const result = await db.prepare('INSERT INTO amandes (membre_id, type, motif, montant, date) VALUES (?, ?, ?, ?, ?)').run(membre_id, type, motif.trim(), Number(montant), date);
+    
+    // Trigger Notification
+    try {
+        await db.prepare('INSERT INTO notifications (membre_id, titre, message, date, type) VALUES (?, ?, ?, ?, ?)')
+            .run(membre_id, 'Nouvelle Amande', `Vous avez reçu une amande de ${montant} FG pour : ${motif}`, new Date().toISOString(), 'alerte');
+    } catch (nErr) {
+        console.error("Erreur notification amande:", nErr);
+    }
+
     res.json({ id: result.lastInsertRowid });
 });
 

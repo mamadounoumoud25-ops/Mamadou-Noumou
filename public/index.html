@@ -55,6 +55,7 @@
                     <div class="nav-item" data-page="amandes">⚠️ Amendes</div>
                     <div class="nav-item" data-page="depenses">💸 Dépenses</div>
                     <div class="nav-item admin-only hidden" data-page="audit">🕵️ Historique Admin</div>
+                    <div class="nav-item admin-only hidden" data-page="settings">⚙️ Paramètres</div>
                     <div class="nav-item" data-page="reglement">📜 Règlement</div>
                     <div class="logout-container">
                         <div class="nav-item" id="backup-btn" style="color: #34d399; font-size: 0.9rem;">⬇️ Sauvegarder les données</div>
@@ -78,6 +79,26 @@
                         <h2 id="page-title">Tableau de Bord</h2>
                     </div>
                     <div style="display: flex; align-items: center; gap: 20px;">
+                        <!-- Notification Bell -->
+                        <div class="notification-container" style="position: relative;">
+                            <button id="noti-bell" class="btn-icon" onclick="toggleNotifications()">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                                </svg>
+                                <span id="noti-badge" class="noti-badge hidden">0</span>
+                            </button>
+                            <div id="noti-panel" class="noti-panel glass hidden">
+                                <div class="noti-header">
+                                    <span>Notifications</span>
+                                    <button onclick="markAllNotificationsRead()" class="btn-text">Tout lire</button>
+                                </div>
+                                <div id="noti-list" class="noti-list">
+                                    <div class="noti-empty">Aucune notification</div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="theme-switch-wrapper" style="position: relative; top: 0; right: 0;">
                             <label class="theme-switch" for="checkbox">
                                 <input type="checkbox" id="checkbox" />
@@ -145,6 +166,22 @@
                                 <div class="stat-label">Amendes Indiscipline</div>
                                 <div class="stat-value" id="stat-am-indiscipline"
                                     style="color: #fbbf24; font-size: 1.8rem;">-</div>
+                            </div>
+                        </div>
+
+                        <!-- Charts SECTION -->
+                        <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 30px;">
+                            <div class="chart-container glass" style="padding: 20px; height: 350px;">
+                                <h4 style="margin-bottom: 15px; font-size: 0.9rem; color: var(--text-dim);">Revenus vs Dépenses</h4>
+                                <canvas id="chart-bar"></canvas>
+                            </div>
+                            <div class="chart-container glass" style="padding: 20px; height: 350px;">
+                                <h4 style="margin-bottom: 15px; font-size: 0.9rem; color: var(--text-dim);">Répartition des Dépenses</h4>
+                                <canvas id="chart-pie"></canvas>
+                            </div>
+                            <div class="chart-container glass" style="padding: 20px; height: 350px; grid-column: 1 / -1;">
+                                <h4 style="margin-bottom: 15px; font-size: 0.9rem; color: var(--text-dim);">Évolution Financière Mensuelle</h4>
+                                <canvas id="chart-line"></canvas>
                             </div>
                         </div>
 
@@ -354,14 +391,14 @@
                                 📜 Discipline & Réunions</h3>
                             <ul style="list-style: none; padding: 0; font-size: 0.95rem; line-height: 1.6;">
                                 <li style="margin-bottom: 10px;">🚫 <b>Indiscipline :</b> (Bavardage, téléphone) →
-                                    Amende de <b>1 000 FG</b></li>
-                                <li style="margin-bottom: 10px;">👊 <b>Bagarre/Injure :</b> Amende de <b>50 000 FG</b> +
+                                    Amende de <b id="reg-amande_indiscipline">1 000 FG</b></li>
+                                <li style="margin-bottom: 10px;">👊 <b>Bagarre/Injure :</b> Amende de <b id="reg-amande_bagarre">50 000 FG</b> +
                                     Exclusion de 1 mois.</li>
                                 <li style="margin-bottom: 10px;">⏰ <b>Réunions :</b> Début à 20h35 précises. Retard →
-                                    <b>1 000 FG</b>. Chômage → <b>2 000 FG</b>.
+                                    <b id="reg-amande_retard_reunion">1 000 FG</b>. Chômage → <b id="reg-amande_chomage_reunion">2 000 FG</b>.
                                 </li>
-                                <li style="margin-bottom: 10px;">📍 <b>Inscription :</b> 7 000 FG. Cotisation dimanche →
-                                    2 000 FG.</li>
+                                <li style="margin-bottom: 10px;">📍 <b>Inscription :</b> <span id="reg-inscription_tarif">7 000 FG</span>. Cotisation dimanche →
+                                    <span id="reg-cotisation_dimanche">2 000 FG</span>.</li>
                             </ul>
                         </div>
 
@@ -374,8 +411,8 @@
                                     (08h35 - 11h00).</li>
                                 <li style="margin-bottom: 10px;">📢 <b>Urgence :</b> Prévenir Abdoulaye, Oumou Sèrè ou
                                     Mamadou Djouldé.</li>
-                                <li style="margin-bottom: 10px;">⚠️ <b>Retard :</b> Fixé à <b>2 000 FG</b>.</li>
-                                <li style="margin-bottom: 10px;">🚫 <b>Chômage :</b> Fixé à <b>5 000 FG</b>.</li>
+                                <li style="margin-bottom: 10px;">⚠️ <b>Retard :</b> Fixé à <b id="reg-amande_retard_travail">2 000 FG</b>.</li>
+                                <li style="margin-bottom: 10px;">🚫 <b>Chômage :</b> Fixé à <b id="reg-amande_chomage_travail">5 000 FG</b>.</li>
                             </ul>
                         </div>
 
@@ -439,8 +476,113 @@
                             </div>
                         </div>
 
-                        <button class="btn-primary" onclick="editMyProfile()" style="width: 100%;">Modifier mes
-                            informations</button>
+                        <button class="btn-primary" onclick="editMyProfile()" style="width: 100%;">Modifier mes informations</button>
+                        <button class="btn-secondary admin-only hidden" onclick="promptSendNotification()" style="width: 100%; margin-top: 10px; background: rgba(99, 102, 241, 0.1); border: 1px solid var(--primary);">🔔 Envoyer un message Flash</button>
+                    </div>
+
+                    <div class="glass" style="max-width: 900px; margin: 30px auto; padding: 30px;">
+                        <h3 style="margin-bottom: 20px;">📜 Mon Historique Personnel</h3>
+                        <div style="overflow-x: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Événement</th>
+                                        <th>Montant / Satut</th>
+                                        <th>Détails</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="my-history-list">
+                                    <tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-dim);">Aucun historique trouvé</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="glass" style="max-width: 900px; margin: 30px auto; padding: 30px;">
+                        <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                            📅 Calendrier de Présence
+                        </h3>
+                        <div id="calendar-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <button class="btn-small" onclick="changeCalendarMonth(-1)" style="padding: 5px 15px;">&lt; Précédent</button>
+                            <h4 id="calendar-month-year" style="margin: 0; color: var(--primary);">Avril 2026</h4>
+                            <button class="btn-small" onclick="changeCalendarMonth(1)" style="padding: 5px 15px;">Suivant &gt;</button>
+                        </div>
+                        <div id="attendance-calendar" class="calendar-grid">
+                            <!-- JS Generated -->
+                        </div>
+                        <div class="calendar-legend" style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 15px; font-size: 0.8rem; justify-content: center;">
+                            <span style="display: flex; align-items: center; gap: 5px;"><i class="dot present"></i> Présent</span>
+                            <span style="display: flex; align-items: center; gap: 5px;"><i class="dot retard"></i> Retard</span>
+                            <span style="display: flex; align-items: center; gap: 5px;"><i class="dot absent"></i> Chômage</span>
+                            <span style="display: flex; align-items: center; gap: 5px;"><i class="dot excuse"></i> Excusé</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Paramètres (Admin Only) -->
+                <section id="page-settings" class="hidden">
+                    <div class="dashboard-sections">
+                        <div class="glass" style="padding: 30px;">
+                            <h3 style="margin-bottom: 25px; display: flex; align-items: center; gap: 10px;">
+                                ⚙️ Configuration de l'Association
+                            </h3>
+                            <form id="settings-form" class="modal-grid">
+                                <div class="form-group-title">Général</div>
+                                <div class="full-width">
+                                    <label class="input-label">Nom de l'Association</label>
+                                    <input type="text" id="set-assoc_name" class="modal-input" placeholder="Ex: U.J.A.D">
+                                </div>
+                                <div class="full-width">
+                                    <label class="input-label">Lien du Logo (URL)</label>
+                                    <input type="text" id="set-assoc_logo" class="modal-input" placeholder="Ex: logo.png">
+                                </div>
+                                <div>
+                                    <label class="input-label">Devise</label>
+                                    <input type="text" id="set-currency" class="modal-input" placeholder="Ex: FG">
+                                </div>
+
+                                <div class="form-group-title">Tarification & Amendes</div>
+                                <div>
+                                    <label class="input-label">Retard Réunion</label>
+                                    <input type="number" id="set-amande_retard_reunion" class="modal-input">
+                                </div>
+                                <div>
+                                    <label class="input-label">Chômage Réunion</label>
+                                    <input type="number" id="set-amande_chomage_reunion" class="modal-input">
+                                </div>
+                                <div>
+                                    <label class="input-label">Retard Travail</label>
+                                    <input type="number" id="set-amande_retard_travail" class="modal-input">
+                                </div>
+                                <div>
+                                    <label class="input-label">Chômage Travail</label>
+                                    <input type="number" id="set-amande_chomage_travail" class="modal-input">
+                                </div>
+                                <div>
+                                    <label class="input-label">Indiscipline</label>
+                                    <input type="number" id="set-amande_indiscipline" class="modal-input">
+                                </div>
+                                <div>
+                                    <label class="input-label">Bagarre / Injure</label>
+                                    <input type="number" id="set-amande_bagarre" class="modal-input">
+                                </div>
+
+                                <div class="form-group-title">Cotisations</div>
+                                <div>
+                                    <label class="input-label">Frais Inscription</label>
+                                    <input type="number" id="set-inscription_tarif" class="modal-input">
+                                </div>
+                                <div>
+                                    <label class="input-label">Cotisation Hebdomadaire</label>
+                                    <input type="number" id="set-cotisation_dimanche" class="modal-input">
+                                </div>
+
+                                <div class="full-width" style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px;">
+                                    <button type="submit" class="btn-primary" style="width: auto;">Enregistrer les modifications</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </section>
             </main>

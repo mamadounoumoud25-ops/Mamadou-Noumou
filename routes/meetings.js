@@ -98,12 +98,46 @@ router.post('/attendance', authenticate, async (req, res) => {
                     await db.prepare('INSERT INTO amandes (membre_id, type, motif, montant, date) VALUES (?, ?, ?, ?, ?)').run(
                         memberId, meeting.type, streakMotif, penaltyAmount, meeting.date
                     );
+                    
+                    // Notification Penalite
+                    await db.prepare('INSERT INTO notifications (membre_id, titre, message, date, type) VALUES (?, ?, ?, ?, ?)')
+                        .run(memberId, 'Pénalité Absence', `Attention: ${streakMotif}. Un montant de ${penaltyAmount} FG a été facturé.`, new Date().toISOString(), 'alerte');
                 }
             }
         }
     }
 
+    // Attendance Notification (Regular fine)
+    if (present === 0 || present === 2) {
+        const fineMotif = present === 2 ? `Retard (${meeting.type})` : `Chômage (${meeting.type})`;
+        await db.prepare('INSERT INTO notifications (membre_id, titre, message, date, type) VALUES (?, ?, ?, ?, ?)')
+            .run(memberId, 'Sanction Présence', `Vous avez été marqué ${present === 2 ? 'en retard' : 'absent'} pour l'activité du ${meeting.date}. Motif: ${fineMotif}`, new Date().toISOString(), 'info');
+    }
+
+
     res.json({ success: true });
+});
+
+// --- Member Attendance History (Calendar) ---
+router.get('/member/:memberId', authenticate, async (req, res) => {
+    // Check permission: admin can see anyone, member can only see themselves
+    if (req.user.role !== 'admin' && req.user.id != req.params.memberId) {
+        return res.status(403).json({ error: 'Action non autorisée' });
+    }
+    
+    try {
+        const data = await db.prepare(`
+            SELECT r.date, r.type, p.present as status 
+            FROM reunions r
+            JOIN presences p ON r.id = p.reunion_id
+            WHERE p.membre_id = ?
+            ORDER BY r.date ASC
+        `).all(req.params.memberId);
+        res.json(data);
+    } catch (err) {
+        console.error("Erreur récup attendancce membre:", err);
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
 });
 
 module.exports = router;

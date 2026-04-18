@@ -12,7 +12,11 @@ router.get('/stats', authenticate, async (req, res) => {
     const totalAmandesReunion = Number((await db.prepare("SELECT SUM(montant) as total FROM amandes WHERE statut = 'paye' AND type = 'Réunion'").get()).total) || 0;
     const totalAmandesTravail = Number((await db.prepare("SELECT SUM(montant) as total FROM amandes WHERE statut = 'paye' AND type IN ('Travail', 'Sport', 'Social')").get()).total) || 0;
     const totalAmandesIndiscipline = Number((await db.prepare("SELECT SUM(montant) as total FROM amandes WHERE statut = 'paye' AND type = 'Indiscipline'").get()).total) || 0;
-    const totalInscriptions = Number((await db.prepare("SELECT COUNT(*) * 7000 as total FROM membres WHERE inscription_payee = 1").get()).total) || 0;
+    
+    // Dynamic Inscription Tarif
+    const s_insc = await db.prepare("SELECT value FROM settings WHERE key = 'inscription_tarif'").get();
+    const insc_tarif = Number(s_insc?.value || 7000);
+    const totalInscriptions = Number((await db.prepare(`SELECT COUNT(*) * ${insc_tarif} as total FROM membres WHERE inscription_payee = 1`).get()).total) || 0;
 
     const rows = await db.prepare('SELECT montant, montant_total FROM cotisations').all();
     const totalResteCotis = rows.reduce((sum, row) => sum + (Number(row.montant_total || row.montant) - Number(row.montant)), 0);

@@ -60,4 +60,27 @@ router.get('/backup', authenticate, async (req, res) => {
     }
 });
 
+// --- Settings API ---
+router.get('/settings', authenticate, async (req, res) => {
+    const rows = await db.prepare('SELECT key, value FROM settings').all();
+    const settings = {};
+    rows.forEach(r => settings[r.key] = r.value);
+    res.json(settings);
+});
+
+router.put('/settings', authenticate, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Action non autorisée' });
+    const updates = req.body;
+    
+    try {
+        for (const [key, value] of Object.entries(updates)) {
+            await db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, value.toString());
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Erreur mise à jour settings:", err);
+        res.status(500).json({ error: 'Erreur lors de la mise à jour des paramètres' });
+    }
+});
+
 module.exports = router;

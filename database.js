@@ -209,8 +209,46 @@ const finalDbClient = {
         details TEXT,
         date TEXT NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS settings (
+        id ${primaryId},
+        key TEXT UNIQUE NOT NULL,
+        value TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id ${primaryId},
+        membre_id INTEGER REFERENCES membres(id) ON DELETE CASCADE,
+        titre TEXT NOT NULL,
+        message TEXT NOT NULL,
+        date TEXT NOT NULL,
+        lu INTEGER DEFAULT 0,
+        type TEXT DEFAULT 'info'
+      );
     `;
     await dbClient.init(schema);
+
+    // Initialize default settings
+    const defaults = [
+      ['assoc_name', 'U.J.A.D.L.S'],
+      ['assoc_logo', 'logo.png'],
+      ['currency', 'FG'],
+      ['amande_retard_reunion', '1000'],
+      ['amande_chomage_reunion', '2000'],
+      ['amande_retard_travail', '2000'],
+      ['amande_chomage_travail', '5000'],
+      ['amande_indiscipline', '1000'],
+      ['amande_bagarre', '50000'],
+      ['inscription_tarif', '7000'],
+      ['cotisation_dimanche', '2000']
+    ];
+
+    for (const [key, value] of defaults) {
+      const existing = await dbClient.prepare("SELECT * FROM settings WHERE key = ?").get(key);
+      if (!existing) {
+        await dbClient.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run(key, value);
+      }
+    }
   }
 };
 
