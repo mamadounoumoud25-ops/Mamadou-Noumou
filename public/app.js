@@ -612,7 +612,6 @@ async function renderCharts() {
         }
     });
 }
-}
 
 async function loadMemberProfile(id = null) {
     if (!state.user) return;
