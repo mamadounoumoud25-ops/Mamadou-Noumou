@@ -544,41 +544,6 @@
                     </div>
                 </section>
 
-                <!-- Modal: Créer un Sondage -->
-                <div id="modal-poll" class="modal">
-                    <div class="modal-content glass">
-                        <span class="close" onclick="closeModal('modal-poll')">&times;</span>
-                        <h2 style="margin-bottom: 25px;">Créer un Nouveau Vote</h2>
-                        <form id="poll-form" class="modal-grid">
-                            <div class="full-width">
-                                <label class="input-label">Titre du Vote</label>
-                                <input type="text" id="poll-titre" class="modal-input" placeholder="Ex: Choix du lieu de la sortie annuelle" required>
-                            </div>
-                            <div class="full-width">
-                                <label class="input-label">Description (facultatif)</label>
-                                <textarea id="poll-description" class="modal-input" style="height: 80px;" placeholder="Détails du vote..."></textarea>
-                            </div>
-                            <div class="full-width">
-                                <label class="input-label">Date d'expiration (facultatif)</label>
-                                <input type="date" id="poll-expiration" class="modal-input">
-                            </div>
-                            <div class="full-width" id="poll-options-container">
-                                <label class="input-label">Options de réponse</label>
-                                <div style="display: flex; flex-direction: column; gap: 10px;">
-                                    <input type="text" class="modal-input poll-opt" placeholder="Option 1" required>
-                                    <input type="text" class="modal-input poll-opt" placeholder="Option 2" required>
-                                </div>
-                            </div>
-                            <button type="button" class="btn-secondary" onclick="addPollOptionField()" style="font-size: 0.8rem; padding: 5px 10px;">+ Ajouter une option</button>
-                            <div class="full-width" style="margin-top: 20px;">
-                                <button type="submit" class="btn-primary" style="width: 100%;">Lancer le Vote</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                </section>
-
                 <!-- Documents Partagés -->
                 <section id="page-documents" class="hidden">
                     <div class="dashboard-sections">
@@ -615,40 +580,6 @@
                         </div>
                     </div>
                 </section>
-
-                <!-- Modal: Ajouter un Document -->
-                <div id="modal-doc" class="modal">
-                    <div class="modal-content glass">
-                        <span class="close" onclick="closeModal('modal-doc')">&times;</span>
-                        <h2 style="margin-bottom: 25px;">Ajouter un Document</h2>
-                        <form id="doc-form" class="modal-grid">
-                            <div class="full-width">
-                                <label class="input-label">Nom du Document</label>
-                                <input type="text" id="doc-nom" class="modal-input" placeholder="Ex: Règlement Intérieur 2024" required>
-                            </div>
-                            <div class="full-width">
-                                <label class="input-label">Catégorie</label>
-                                <select id="doc-categorie" class="modal-input">
-                                    <option value="Officiel">📜 Officiel</option>
-                                    <option value="PV Réunion">📝 PV de Réunion</option>
-                                    <option value="Finances">💰 Rapport Financier</option>
-                                    <option value="Général">📂 Autre</option>
-                                </select>
-                            </div>
-                            <div class="full-width">
-                                <label class="input-label">Description (facultatif)</label>
-                                <textarea id="doc-description" class="modal-input" placeholder="Brève explication..."></textarea>
-                            </div>
-                            <div class="full-width">
-                                <label class="input-label">Fichier</label>
-                                <input type="file" id="doc-file" class="modal-input" required>
-                            </div>
-                            <div class="full-width" style="margin-top: 20px;">
-                                <button type="submit" class="btn-primary" style="width: 100%;">Enregistrer le Document</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
 
                 <!-- Paramètres (Admin Only) -->
                 <section id="page-settings" class="hidden">

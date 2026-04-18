@@ -935,12 +935,44 @@ async function loadPolls() {
 }
 
 window.openCreatePollModal = () => {
-    document.getElementById('poll-form').reset();
-    document.getElementById('poll-options-container').querySelector('div').innerHTML = `
-        <input type="text" class="modal-input poll-opt" placeholder="Option 1" required>
-        <input type="text" class="modal-input poll-opt" placeholder="Option 2" required>
-    `;
-    showModal('modal-poll');
+    showModal('Créer un Nouveau Vote', `
+        <form id="poll-form" class="modal-grid">
+            <div class="full-width">
+                <label class="input-label">Titre du Vote</label>
+                <input type="text" id="poll-titre" class="modal-input" placeholder="Ex: Choix du lieu de la sortie annuelle" required>
+            </div>
+            <div class="full-width">
+                <label class="input-label">Description (facultatif)</label>
+                <textarea id="poll-description" class="modal-input" style="height: 80px;" placeholder="Détails du vote..."></textarea>
+            </div>
+            <div class="full-width">
+                <label class="input-label">Date d'expiration (facultatif)</label>
+                <input type="date" id="poll-expiration" class="modal-input">
+            </div>
+            <div class="full-width" id="poll-options-container">
+                <label class="input-label">Options de réponse</label>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <input type="text" class="modal-input poll-opt" placeholder="Option 1" required>
+                    <input type="text" class="modal-input poll-opt" placeholder="Option 2" required>
+                </div>
+            </div>
+            <button type="button" class="btn-secondary" onclick="addPollOptionField()" style="font-size: 0.8rem; padding: 5px 10px;">+ Ajouter une option</button>
+        </form>
+    `, async () => {
+        const titre = document.getElementById('poll-titre').value;
+        const description = document.getElementById('poll-description').value;
+        const date_expiration = document.getElementById('poll-expiration').value;
+        const options = Array.from(document.querySelectorAll('.poll-opt')).map(i => i.value).filter(v => v.trim() !== '');
+
+        if (!titre || options.length < 2) throw new Error('Titre et au moins 2 options requis');
+
+        await fetchAPI('/api/polls', {
+            method: 'POST',
+            body: { titre, description, options, date_expiration }
+        });
+        showToast("Le vote a été lancé !", "success");
+        loadPolls();
+    });
 };
 
 window.addPollOptionField = () => {
@@ -953,26 +985,6 @@ window.addPollOptionField = () => {
     input.required = true;
     container.appendChild(input);
 };
-
-document.getElementById('poll-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const titre = document.getElementById('poll-titre').value;
-    const description = document.getElementById('poll-description').value;
-    const date_expiration = document.getElementById('poll-expiration').value;
-    const options = Array.from(document.querySelectorAll('.poll-opt')).map(i => i.value).filter(v => v.trim() !== '');
-
-    try {
-        await fetchAPI('/api/polls', {
-            method: 'POST',
-            body: { titre, description, options, date_expiration }
-        });
-        closeModal('modal-poll');
-        showToast("Le vote a été lancé !", "success");
-        loadPolls();
-    } catch (err) {
-        showToast(err.message, "error");
-    }
-});
 
 window.castVote = async (pollId, optionId) => {
     try {
@@ -1033,31 +1045,52 @@ async function loadDocuments() {
 }
 
 window.openUploadDocModal = () => {
-    document.getElementById('doc-form').reset();
-    showModal('modal-doc');
-};
+    showModal('Ajouter un Document', `
+        <form id="doc-form" class="modal-grid">
+            <div class="full-width">
+                <label class="input-label">Nom du Document</label>
+                <input type="text" id="doc-nom" class="modal-input" placeholder="Ex: Règlement Intérieur 2024" required>
+            </div>
+            <div class="full-width">
+                <label class="input-label">Catégorie</label>
+                <select id="doc-categorie" class="modal-input">
+                    <option value="Officiel">📜 Officiel</option>
+                    <option value="PV Réunion">📝 PV de Réunion</option>
+                    <option value="Finances">💰 Rapport Financier</option>
+                    <option value="Général">📂 Autre</option>
+                </select>
+            </div>
+            <div class="full-width">
+                <label class="input-label">Description (facultatif)</label>
+                <textarea id="doc-description" class="modal-input" placeholder="Brève explication..."></textarea>
+            </div>
+            <div class="full-width">
+                <label class="input-label">Fichier</label>
+                <input type="file" id="doc-file" class="modal-input" required>
+            </div>
+        </form>
+    `, async () => {
+        const formData = new FormData();
+        const nom = document.getElementById('doc-nom').value;
+        const categorie = document.getElementById('doc-categorie').value;
+        const description = document.getElementById('doc-description').value;
+        const file = document.getElementById('doc-file').files[0];
 
-document.getElementById('doc-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-    formData.append('nom', document.getElementById('doc-nom').value);
-    formData.append('categorie', document.getElementById('doc-categorie').value);
-    formData.append('description', document.getElementById('doc-description').value);
-    const file = document.getElementById('doc-file').files[0];
-    if (file) formData.append('file', file);
+        if (!nom || !file) throw new Error('Nom et fichier requis');
 
-    try {
+        formData.append('nom', nom);
+        formData.append('categorie', categorie);
+        formData.append('description', description);
+        formData.append('file', file);
+
         await fetchAPI('/api/documents', {
             method: 'POST',
             body: formData
         });
-        closeModal('modal-doc');
         showToast("Document ajouté avec succès !", "success");
         loadDocuments();
-    } catch (err) {
-        showToast(err.message, "error");
-    }
-});
+    });
+};
 
 window.deleteDocument = async (id) => {
     if (!confirm("Voulez-vous vraiment supprimer ce document ?")) return;
