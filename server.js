@@ -27,6 +27,9 @@ const financesRoute = require('./routes/finances');
 const statsRoute = require('./routes/stats');
 const systemRoute = require('./routes/system');
 const notificationsRoute = require('./routes/notifications');
+const pollsRoute = require('./routes/polls');
+const documentsRoute = require('./routes/documents');
+const chatRoute = require('./routes/chat');
 const { router: auditRoute, logAction } = require('./routes/audit');
 
 // Apply Audit Log Middleware
@@ -40,6 +43,9 @@ app.use('/api', financesRoute); // /api/cotis, /api/expenses, /api/amandes
 app.use('/api', statsRoute);    // /api/stats, /api/charts
 app.use('/api', systemRoute);   // /api/announcements, /api/backup
 app.use('/api/notifications', notificationsRoute);
+app.use('/api/polls', pollsRoute);
+app.use('/api/documents', documentsRoute);
+app.use('/api/chat', chatRoute);
 app.use('/api/audit', auditRoute);
 
 // --- Error Handling ---

@@ -225,6 +225,47 @@ const finalDbClient = {
         lu INTEGER DEFAULT 0,
         type TEXT DEFAULT 'info'
       );
+
+      CREATE TABLE IF NOT EXISTS sondages (
+        id ${primaryId},
+        titre TEXT NOT NULL,
+        description TEXT,
+        date_creation TEXT NOT NULL,
+        date_expiration TEXT,
+        createur_id INTEGER REFERENCES membres(id),
+        statut TEXT DEFAULT 'ouvert'
+      );
+
+      CREATE TABLE IF NOT EXISTS sondage_options (
+        id ${primaryId},
+        sondage_id INTEGER NOT NULL REFERENCES sondages(id) ON DELETE CASCADE,
+        texte TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS sondage_votes (
+        id ${primaryId},
+        membre_id INTEGER NOT NULL REFERENCES membres(id) ON DELETE CASCADE,
+        sondage_id INTEGER NOT NULL REFERENCES sondages(id) ON DELETE CASCADE,
+        option_id INTEGER NOT NULL REFERENCES sondage_options(id) ON DELETE CASCADE,
+        date TEXT NOT NULL,
+        UNIQUE(membre_id, sondage_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS documents (
+        id ${primaryId},
+        nom TEXT NOT NULL,
+        url TEXT NOT NULL,
+        description TEXT,
+        categorie TEXT,
+        date TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id ${primaryId},
+        expediteur_id INTEGER NOT NULL REFERENCES membres(id) ON DELETE CASCADE,
+        contenu TEXT NOT NULL,
+        date TEXT NOT NULL
+      );
     `;
     await dbClient.init(schema);
 

@@ -30,6 +30,7 @@ let state = {
 let lineChartInstance = null;
 let currentCalendarDate = new Date(); // Month/Year for the attendance calendar
 let attendanceHistory = []; // Cache for current member's attendance
+let chatInterval = null; // To handle chat polling
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -150,8 +151,6 @@ async function handleLogin(e) {
             updateUserHeader();
             showScreen('app');
             navigateTo('dashboard');
-            loadStats();
-            loadMembers();
             loadNotifications();
         } else {
             showToast('Identifiants incorrects', 'error');
@@ -466,6 +465,9 @@ async function navigateTo(page) {
         'depenses': 'Dépenses',
         'audit': 'Historique Admin',
         'reglement': 'Règlement',
+        'polls': 'Votes & Décisions',
+        'documents': 'Documents Partagés',
+        'chat': 'Discussion Interne',
         'profile': 'Mon Profil'
     };
     document.getElementById('page-title').textContent = titles[page.toLowerCase()] || page;
@@ -480,8 +482,27 @@ async function navigateTo(page) {
     if (page === 'meetings') loadMeetings();
     if (page === 'cotisations') loadCotisations();
     if (page === 'depenses') loadExpenses();
-    if (page === 'amandes') loadAmandes();
     if (page === 'audit') loadAuditLogs();
+    if (page === 'polls') loadPolls();
+    if (page === 'documents') loadDocuments();
+    if (page === 'chat') {
+        loadChat();
+        startChatPolling();
+    } else {
+        stopChatPolling();
+    }
+}
+
+function startChatPolling() {
+    if (chatInterval) return;
+    chatInterval = setInterval(loadChat, 5000);
+}
+
+function stopChatPolling() {
+    if (chatInterval) {
+        clearInterval(chatInterval);
+        chatInterval = null;
+    }
 }
 
 // --- Feature Logic ---
@@ -838,6 +859,311 @@ window.showMemberProfile = (id) => {
     navigateTo('profile');
     loadMemberProfile(id);
 };
+
+// --- Logic Votes & Sondages ---
+async function loadPolls() {
+    const polls = await fetchAPI('/api/polls');
+    if (!polls) return;
+
+    const list = document.getElementById('polls-list');
+    if (!list) return;
+
+    if (polls.length === 0) {
+        list.innerHTML = '<div class="noti-empty" style="grid-column: 1/-1;">Aucun vote en cours pour le moment.</div>';
+        return;
+    }
+
+    list.innerHTML = polls.map(p => {
+        const hasVoted = p.user_voted_option != null;
+        const total = p.total_votes || 0;
+        const isClosed = p.statut === 'cloture' || (p.date_expiration && new Date(p.date_expiration) < new Date());
+
+        return `
+            <div class="glass poll-card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <span class="poll-statut ${isClosed ? 'cloture' : 'ouvert'}">${isClosed ? 'Terminé' : 'En cours'}</span>
+                    ${state.user.role === 'admin' && !isClosed ? `<button class="btn-small btn-danger" onclick="closePoll(${p.id})">Clôturer</button>` : ''}
+                </div>
+                <h3 style="margin:0;">${p.titre}</h3>
+                <p style="font-size: 0.85rem; color: var(--text-dim);">${p.description || ''}</p>
+                
+                <div class="options-container">
+                    ${p.options.map(opt => {
+                        const percent = total > 0 ? Math.round((opt.votes_count / total) * 100) : 0;
+                        const isSelected = p.user_voted_option === opt.id;
+                        
+                        let votersHtml = '';
+                        if (opt.voters && opt.voters.length > 0) {
+                            votersHtml = `<div class="voters-list">Voté par: ${opt.voters.map(v => `${v.prenom} ${v.nom}`).join(', ')}</div>`;
+                        }
+
+                        if (hasVoted || isClosed) {
+                            // Display Results
+                            return `
+                                <div class="poll-option-row">
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 5px;">
+                                        <span style="${isSelected ? 'color: var(--primary); font-weight: bold;' : ''}">${opt.texte} ${isSelected ? '✅' : ''}</span>
+                                        <span>${opt.votes_count} (${percent}%)</span>
+                                    </div>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width: ${percent}%"></div>
+                                    </div>
+                                    ${votersHtml}
+                                </div>
+                            `;
+                        } else {
+                            // Display Voting Buttons
+                            return `
+                                <div class="poll-option-row">
+                                    <button class="poll-option-btn" onclick="castVote(${p.id}, ${opt.id})">
+                                        <span>${opt.texte}</span>
+                                        <i class="chevron"></i>
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }).join('')}
+                </div>
+
+                <div style="margin-top: auto; padding-top: 15px; border-top: 1px solid var(--glass-border); font-size: 0.75rem; color: var(--text-dim); display:flex; justify-content: space-between;">
+                    <span>👥 Total: ${total} vote(s)</span>
+                    <span>Créé par: ${p.createur_prenom || 'Admin'}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+window.openCreatePollModal = () => {
+    document.getElementById('poll-form').reset();
+    document.getElementById('poll-options-container').querySelector('div').innerHTML = `
+        <input type="text" class="modal-input poll-opt" placeholder="Option 1" required>
+        <input type="text" class="modal-input poll-opt" placeholder="Option 2" required>
+    `;
+    showModal('modal-poll');
+};
+
+window.addPollOptionField = () => {
+    const container = document.getElementById('poll-options-container').querySelector('div');
+    const count = container.querySelectorAll('input').length + 1;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'modal-input poll-opt';
+    input.placeholder = `Option ${count}`;
+    input.required = true;
+    container.appendChild(input);
+};
+
+document.getElementById('poll-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const titre = document.getElementById('poll-titre').value;
+    const description = document.getElementById('poll-description').value;
+    const date_expiration = document.getElementById('poll-expiration').value;
+    const options = Array.from(document.querySelectorAll('.poll-opt')).map(i => i.value).filter(v => v.trim() !== '');
+
+    try {
+        await fetchAPI('/api/polls', {
+            method: 'POST',
+            body: { titre, description, options, date_expiration }
+        });
+        closeModal('modal-poll');
+        showToast("Le vote a été lancé !", "success");
+        loadPolls();
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+});
+
+window.castVote = async (pollId, optionId) => {
+    try {
+        await fetchAPI(`/api/polls/${pollId}/vote`, {
+            method: 'POST',
+            body: { optionId }
+        });
+        showToast("Votre vote a été enregistré.", "success");
+        loadPolls();
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+};
+
+window.closePoll = async (id) => {
+    if (!confirm("Voulez-vous vraiment clôturer ce vote ?")) return;
+    try {
+        await fetchAPI(`/api/polls/${id}/close`, { method: 'POST' });
+        loadPolls();
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+};
+
+// --- Logic Documents ---
+async function loadDocuments() {
+    const docs = await fetchAPI('/api/documents');
+    if (!docs) return;
+    const list = document.getElementById('docs-list');
+    if (!list) return;
+
+    if (docs.length === 0) {
+        list.innerHTML = '<div class="noti-empty" style="grid-column: 1/-1;">Aucun document disponible dans la bibliothèque.</div>';
+        return;
+    }
+
+    list.innerHTML = docs.map(d => {
+        let icon = '📄';
+        const url = d.url.toLowerCase();
+        if (url.endsWith('.pdf')) icon = '📕';
+        else if (url.endsWith('.doc') || url.endsWith('.docx')) icon = '📘';
+        else if (url.endsWith('.xls') || url.endsWith('.xlsx')) icon = '📗';
+        else if (url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png')) icon = '🖼️';
+
+        return `
+            <div class="glass doc-card">
+                <div class="doc-icon">${icon}</div>
+                <h4 style="margin:0;">${d.nom}</h4>
+                <div class="badge info" style="font-size: 0.65rem;">${d.categorie}</div>
+                <p style="font-size: 0.8rem; color: var(--text-dim); margin: 5px 0;">${d.description || ''}</p>
+                <div style="display: flex; gap: 10px; margin-top: auto; width: 100%;">
+                    <a href="${d.url}" download="${d.nom}" class="btn-small" style="flex:1; text-align:center; background: var(--primary); text-decoration:none; color:white;">Télécharger</a>
+                    ${state.user.role === 'admin' ? `<button class="btn-small btn-danger" onclick="deleteDocument(${d.id})">🗑️</button>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+window.openUploadDocModal = () => {
+    document.getElementById('doc-form').reset();
+    showModal('modal-doc');
+};
+
+document.getElementById('doc-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('nom', document.getElementById('doc-nom').value);
+    formData.append('categorie', document.getElementById('doc-categorie').value);
+    formData.append('description', document.getElementById('doc-description').value);
+    const file = document.getElementById('doc-file').files[0];
+    if (file) formData.append('file', file);
+
+    try {
+        await fetchAPI('/api/documents', {
+            method: 'POST',
+            body: formData
+        });
+        closeModal('modal-doc');
+        showToast("Document ajouté avec succès !", "success");
+        loadDocuments();
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+});
+
+window.deleteDocument = async (id) => {
+    if (!confirm("Voulez-vous vraiment supprimer ce document ?")) return;
+    try {
+        await fetchAPI(`/api/documents/${id}`, { method: 'DELETE' });
+        loadDocuments();
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+};
+
+// --- Logic Chat ---
+async function loadChat() {
+    const chatArea = document.getElementById('chat-messages');
+    if (!chatArea) return;
+
+    try {
+        const messages = await fetchAPI('/api/chat');
+        if (!messages) return;
+
+        const isAtBottom = chatArea.scrollHeight - chatArea.scrollTop === chatArea.clientHeight;
+
+        chatArea.innerHTML = messages.map(m => {
+            const isMine = m.expediteur_id === state.user.id;
+            const initial = m.prenom ? m.prenom[0] : '?';
+            const photoHtml = m.photo_url 
+                ? `<img src="${m.photo_url}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-right:5px;vertical-align:middle;">`
+                : `<span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:var(--primary);color:white;font-size:0.6rem;line-height:24px;text-align:center;margin-right:5px;vertical-align:middle;">${initial}</span>`;
+
+            return `
+                <div class="chat-bubble ${isMine ? 'mine' : 'others'}">
+                    ${!isMine ? `<div style="font-size:0.7rem; font-weight:bold; margin-bottom:3px; color:rgba(255,255,255,0.7);">${photoHtml}${m.prenom} ${m.nom}</div>` : ''}
+                    <div>${m.contenu}</div>
+                    <span class="chat-meta">${new Date(m.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+            `;
+        }).join('');
+
+        if (isAtBottom) {
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+    } catch (err) {
+        console.error("Chat error:", err);
+    }
+}
+
+// --- Logic Exports Excel (SheetJS) ---
+window.exportMembersToExcel = () => {
+    const data = state.data.members.map(m => ({
+        'Nom': m.nom,
+        'Prénom': m.prenom,
+        'Téléphone': m.telephone,
+        'Rôle': m.role,
+        'Statut': m.statut,
+        'Inscription Payée': m.inscription_payee ? 'OUI' : 'NON'
+    }));
+    downloadExcel(data, "Membres_UJAD.xlsx");
+};
+
+window.exportCotisToExcel = () => {
+    const data = state.data.cotisations.map(c => ({
+        'Membre': `${c.prenom} ${c.nom}`,
+        'Mois': c.mois,
+        'Montant Versé': c.montant,
+        'Total Attendu': c.montant_total || c.montant,
+        'Date Paiement': c.date_paiement
+    }));
+    downloadExcel(data, "Cotisations_UJAD.xlsx");
+};
+
+window.exportAmandesToExcel = () => {
+    const data = state.data.amandes.map(a => ({
+        'Membre': `${a.prenom} ${a.nom}`,
+        'Type': a.type,
+        'Motif': a.motif,
+        'Montant': a.montant,
+        'Statut': a.statut,
+        'Date': a.date
+    }));
+    downloadExcel(data, "Amandes_UJAD.xlsx");
+};
+
+function downloadExcel(jsonBody, filename) {
+    const ws = XLSX.utils.json_to_sheet(jsonBody);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Données");
+    XLSX.writeFile(wb, filename);
+    showToast("Fichier Excel généré !", "success");
+}
+
+document.getElementById('chat-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('chat-input');
+    const contenu = input.value;
+    if (!contenu.trim()) return;
+
+    try {
+        input.value = '';
+        await fetchAPI('/api/chat', { method: 'POST', body: { contenu } });
+        await loadChat();
+        const chatArea = document.getElementById('chat-messages');
+        if (chatArea) chatArea.scrollTop = chatArea.scrollHeight;
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+});
 
 
 async function loadMembers(page = 1) {
