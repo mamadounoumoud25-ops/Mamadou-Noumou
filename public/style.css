@@ -1221,16 +1221,16 @@ input:checked+.slider:before {
 /* --- Votes & Sondages --- */
 .polls-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 25px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
     margin-top: 20px;
 }
 
 .poll-card {
-    padding: 25px;
+    padding: 18px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
     transition: transform 0.3s ease;
 }
 
@@ -1306,17 +1306,17 @@ input:checked+.slider:before {
 /* --- Documents Partagés --- */
 .docs-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 15px;
 }
 
 .doc-card {
-    padding: 20px;
+    padding: 15px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 10px;
+    gap: 8px;
     border: 1px solid var(--glass-border);
     transition: all 0.3s;
 }
@@ -1327,7 +1327,7 @@ input:checked+.slider:before {
 }
 
 .doc-icon {
-    font-size: 2.5rem;
+    font-size: 2rem;
     margin-bottom: 5px;
 }
 
@@ -1339,20 +1339,20 @@ input:checked+.slider:before {
 .chat-messages-area {
     flex: 1;
     overflow-y: auto;
-    padding: 15px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
     background: rgba(0, 0, 0, 0.1);
     border-radius: 10px;
     margin-bottom: 15px;
 }
 
 .chat-bubble {
-    max-width: 80%;
-    padding: 10px 15px;
+    max-width: 85%;
+    padding: 8px 12px;
     border-radius: 15px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     position: relative;
     line-height: 1.4;
 }
@@ -1387,9 +1387,10 @@ input:checked+.slider:before {
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--glass-border);
     color: white;
-    padding: 12px 20px;
+    padding: 10px 15px;
     border-radius: 50px;
     outline: none;
+    font-size: 0.85rem;
 }
 
 .chat-input-area input:focus {
