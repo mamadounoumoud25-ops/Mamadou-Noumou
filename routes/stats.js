@@ -42,20 +42,20 @@ router.get('/stats', authenticate, async (req, res) => {
 
 router.get('/charts', authenticate, async (req, res) => {
     const cotis = await db.prepare(`
-        SELECT strftime('%Y-%m', date_paiement) as month, SUM(montant) as total 
+        SELECT substr(date_paiement, 1, 7) as month, SUM(montant) as total 
         FROM cotisations 
         GROUP BY month ORDER BY month DESC LIMIT 12
     `).all();
 
     const amandes = await db.prepare(`
-        SELECT strftime('%Y-%m', date) as month, SUM(montant) as total 
+        SELECT substr(date, 1, 7) as month, SUM(montant) as total 
         FROM amandes 
         WHERE statut = 'paye'
         GROUP BY month ORDER BY month DESC LIMIT 12
     `).all();
 
     const expenses = await db.prepare(`
-        SELECT strftime('%Y-%m', date) as month, SUM(montant) as total 
+        SELECT substr(date, 1, 7) as month, SUM(montant) as total 
         FROM depenses 
         GROUP BY month ORDER BY month DESC LIMIT 12
     `).all();
