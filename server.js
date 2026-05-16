@@ -1,9 +1,17 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
 const db = require('./database');
+
+// Ensure uploads directory exists (important for Render where filesystem is ephemeral)
+const uploadsDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('[Server] Created uploads directory:', uploadsDir);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
