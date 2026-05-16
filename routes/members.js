@@ -45,24 +45,37 @@ router.post('/', authenticate, upload.single('photo'), async (req, res) => {
 
     const photo_url = req.file ? `/uploads/${req.file.filename}` : null;
 
+    // Sanitize: convert undefined/empty strings to null, parse integers
+    // This fixes PostgreSQL compatibility (PG rejects undefined params)
+    const safePhone = (telephone && telephone.trim()) ? telephone.trim() : null;
+    const safeEmail = (email && email.trim()) ? email.trim() : null;
+    const safeAdresse = (adresse && adresse.trim()) ? adresse.trim() : null;
+    const safeDateAdhesion = (date_adhesion && date_adhesion.trim()) ? date_adhesion.trim() : null;
+    const safeRole = role || 'membre';
+    const safeStatut = statut || 'actif';
+    const safeInscription = parseInt(inscription_payee) || 0;
+    const safeDateInscription = (date_inscription && date_inscription.trim())
+        ? date_inscription.trim()
+        : (safeInscription === 1 ? new Date().toISOString().split('T')[0] : null);
+
     try {
-        const result = await db.prepare('INSERT INTO membres (nom, prenom, telephone, email, adresse, date_adhesion, role, statut, password, inscription_payee, date_inscription, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
-            nom, prenom, telephone, email, adresse, date_adhesion, role || 'membre', statut || 'actif', hashedPassword, inscription_payee || 0, date_inscription || null, photo_url
-        );
+        const result = await db.prepare(
+            'INSERT INTO membres (nom, prenom, telephone, email, adresse, date_adhesion, role, statut, password, inscription_payee, date_inscription, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        ).run(nom, prenom, safePhone, safeEmail, safeAdresse, safeDateAdhesion, safeRole, safeStatut, hashedPassword, safeInscription, safeDateInscription, photo_url);
+
         res.json({ id: result.lastInsertRowid, photo_url });
     } catch (err) {
-        console.error('[ADD MEMBER ERROR]', err.code, err.message, err);
-        if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || (err.message && err.message.includes('unique'))) {
-            return res.status(400).json({ error: 'Ce numéro de téléphone est déjà pris.' });
-        }
-        res.status(500).json({ error: "Erreur serveur: " + err.message });
+        console.error('[ADD MEMBER ERROR]', err.code, err.message);
+        const isUnique = err.code === 'SQLITE_CONSTRAINT_UNIQUE'
+            || err.code === '23505'
+            || (err.message && err.message.toLowerCase().includes('unique'));
+        if (isUnique) return res.status(400).json({ error: 'Ce numéro de téléphone est déjà pris.' });
+        res.status(500).json({ error: 'Erreur serveur: ' + err.message });
     }
 });
 
 // UPDATE member
 router.put('/:id', authenticate, upload.single('photo'), async (req, res) => {
-    // Both admin and the user themselves could potentially update info (if requested)
-    // Currently only admins can fully edit members in UJAD. We'll allow self-update of photo later if needed.
     if (req.user.role !== 'admin' && req.user.id !== parseInt(req.params.id)) {
         return res.status(403).json({ error: 'Action non autorisée' });
     }
@@ -70,16 +83,27 @@ router.put('/:id', authenticate, upload.single('photo'), async (req, res) => {
     const { nom, prenom, telephone, email, adresse, date_adhesion, role, password, statut, inscription_payee } = req.body;
     if (!nom || !prenom) return res.status(400).json({ error: 'Le nom et le prénom sont obligatoires' });
 
-    let query = 'UPDATE membres SET nom = ?, prenom = ?, telephone = ?, email = ?, adresse = ?, date_adhesion = ?';
-    let params = [nom, prenom, telephone, email, adresse, date_adhesion];
+    // Sanitize
+    const safePhone = (telephone && telephone.trim()) ? telephone.trim() : null;
+    const safeEmail = (email && email.trim()) ? email.trim() : null;
+    const safeAdresse = (adresse && adresse.trim()) ? adresse.trim() : null;
+    const safeDateAdhesion = (date_adhesion && date_adhesion.trim()) ? date_adhesion.trim() : null;
+    const safeInscription = parseInt(inscription_payee) || 0;
 
-    // Only admin can change role, statut and inscriptions
+    let query = 'UPDATE membres SET nom = ?, prenom = ?, telephone = ?, email = ?, adresse = ?, date_adhesion = ?';
+    let params = [nom, prenom, safePhone, safeEmail, safeAdresse, safeDateAdhesion];
+
     if (req.user.role === 'admin') {
         query += ', role = ?, statut = ?, inscription_payee = ?';
-        params.push(role, statut, inscription_payee);
-        if (inscription_payee == 1) {
-            query += ', date_inscription = COALESCE(date_inscription, ?)';
-            params.push(new Date().toISOString().split('T')[0]);
+        params.push(role || 'membre', statut || 'actif', safeInscription);
+        if (safeInscription === 1) {
+            // Fetch existing date_inscription to preserve it if already set
+            const existing = await db.prepare('SELECT date_inscription FROM membres WHERE id = ?').get(req.params.id);
+            const dateInscription = (existing && existing.date_inscription)
+                ? existing.date_inscription
+                : new Date().toISOString().split('T')[0];
+            query += ', date_inscription = ?';
+            params.push(dateInscription);
         }
     }
 
@@ -88,7 +112,7 @@ router.put('/:id', authenticate, upload.single('photo'), async (req, res) => {
         params.push(bcrypt.hashSync(password, 10));
     }
 
-    let photo_url = req.file ? `/uploads/${req.file.filename}` : null;
+    const photo_url = req.file ? `/uploads/${req.file.filename}` : null;
     if (photo_url) {
         query += ', photo_url = ?';
         params.push(photo_url);
@@ -101,8 +125,12 @@ router.put('/:id', authenticate, upload.single('photo'), async (req, res) => {
         await db.prepare(query).run(...params);
         res.json({ success: true, photo_url });
     } catch (err) {
-        if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') return res.status(400).json({ error: 'Ce numéro de téléphone est déjà pris.' });
-        res.status(500).json({ error: "Erreur serveur" });
+        console.error('[UPDATE MEMBER ERROR]', err.code, err.message);
+        const isUnique = err.code === 'SQLITE_CONSTRAINT_UNIQUE'
+            || err.code === '23505'
+            || (err.message && err.message.toLowerCase().includes('unique'));
+        if (isUnique) return res.status(400).json({ error: 'Ce numéro de téléphone est déjà pris.' });
+        res.status(500).json({ error: 'Erreur serveur: ' + err.message });
     }
 });
 
