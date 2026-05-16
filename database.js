@@ -80,48 +80,59 @@ if (usePostgres) {
     }
   };
 } else {
-  const Database = require('better-sqlite3');
+  const sqlite3 = require('sqlite3').verbose();
   const dbPath = process.env.DB_PATH || path.join(__dirname, 'ujad.db');
-  const sqliteDb = new Database(dbPath);
-  sqliteDb.pragma('journal_mode = WAL');
-  sqliteDb.pragma('foreign_keys = ON');
+  const sqliteDb = new sqlite3.Database(dbPath);
+
+  const execPromise = (sql) => new Promise((resolve, reject) => sqliteDb.exec(sql, err => err ? reject(err) : resolve()));
 
   dbClient = {
     prepare: (sql) => {
-      const stmt = sqliteDb.prepare(sql);
       return {
-        get: async (...params) => stmt.get(...params),
-        all: async (...params) => stmt.all(...params),
-        run: async (...params) => stmt.run(...params)
+        get: (...params) => new Promise((resolve, reject) => sqliteDb.get(sql, params, (err, row) => err ? reject(err) : resolve(row))),
+        all: (...params) => new Promise((resolve, reject) => sqliteDb.all(sql, params, (err, rows) => err ? reject(err) : resolve(rows))),
+        run: (...params) => new Promise((resolve, reject) => sqliteDb.run(sql, params, function(err) {
+          if (err) reject(err);
+          else resolve({ changes: this.changes, lastInsertRowid: this.lastID });
+        }))
       };
     },
     init: async (schema) => {
-      sqliteDb.exec(schema);
+      await execPromise('PRAGMA journal_mode = WAL');
+      await execPromise('PRAGMA foreign_keys = ON');
 
-      const safeAddColumn = (table, column, definition) => {
-        const cols = sqliteDb.prepare(`PRAGMA table_info(${table})`).all();
+      const statements = schema.split(';').map(s => s.trim()).filter(s => s.length > 0);
+      for (const stmt of statements) {
+        await new Promise((resolve, reject) => sqliteDb.run(stmt, err => err ? reject(err) : resolve()));
+      }
+
+      const safeAddColumn = async (table, column, definition) => {
+        const cols = await new Promise((resolve, reject) => sqliteDb.all(`PRAGMA table_info(${table})`, (err, rows) => err ? reject(err) : resolve(rows)));
         if (!cols.find(c => c.name === column)) {
-          sqliteDb.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+          await new Promise((resolve, reject) => sqliteDb.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`, err => err ? reject(err) : resolve()));
           console.log(`[Migration] Added column '${column}' to table '${table}'`);
         }
       };
 
-      safeAddColumn('depenses', 'categorie', 'TEXT DEFAULT NULL');
-      safeAddColumn('depenses', 'receipt_url', 'TEXT DEFAULT NULL');
-      safeAddColumn('cotisations', 'montant_total', 'REAL DEFAULT NULL');
-      safeAddColumn('membres', 'photo_url', 'TEXT DEFAULT NULL');
+      await safeAddColumn('depenses', 'categorie', 'TEXT DEFAULT NULL');
+      await safeAddColumn('depenses', 'receipt_url', 'TEXT DEFAULT NULL');
+      await safeAddColumn('cotisations', 'montant_total', 'REAL DEFAULT NULL');
+      await safeAddColumn('membres', 'photo_url', 'TEXT DEFAULT NULL');
 
       const primaryPhone = process.env.ADMIN_PHONE || '611760045';
       const primaryPass = process.env.ADMIN_PASS || '239762';
 
-      const existingAdmin = sqliteDb.prepare("SELECT * FROM membres WHERE telephone = ?").get(primaryPhone);
+      const existingAdmin = await new Promise((resolve, reject) => sqliteDb.get("SELECT * FROM membres WHERE telephone = ?", [primaryPhone], (err, row) => err ? reject(err) : resolve(row)));
       if (!existingAdmin) {
         const hashedPassword = bcrypt.hashSync(primaryPass, 10);
-        sqliteDb.prepare("INSERT INTO membres (nom, prenom, telephone, role, password, statut) VALUES (?, ?, ?, ?, ?, ?)")
-          .run('UJAD', 'Directeur', primaryPhone, 'admin', hashedPassword, 'actif');
+        await new Promise((resolve, reject) => sqliteDb.run(
+          "INSERT INTO membres (nom, prenom, telephone, role, password, statut) VALUES (?, ?, ?, ?, ?, ?)",
+          ['UJAD', 'Directeur', primaryPhone, 'admin', hashedPassword, 'actif'],
+          err => err ? reject(err) : resolve()
+        ));
         console.log(`[DB] Admin principal créé (SQLite): ${primaryPhone}`);
       } else {
-        sqliteDb.prepare("UPDATE membres SET role = 'admin' WHERE telephone = ?").run(primaryPhone);
+        await new Promise((resolve, reject) => sqliteDb.run("UPDATE membres SET role = 'admin' WHERE telephone = ?", [primaryPhone], err => err ? reject(err) : resolve()));
       }
     }
   };

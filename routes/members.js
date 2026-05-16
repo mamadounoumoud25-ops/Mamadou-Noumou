@@ -51,8 +51,11 @@ router.post('/', authenticate, upload.single('photo'), async (req, res) => {
         );
         res.json({ id: result.lastInsertRowid, photo_url });
     } catch (err) {
-        if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') return res.status(400).json({ error: 'Ce numéro de téléphone est déjà pris.' });
-        res.status(500).json({ error: "Erreur serveur" });
+        console.error('[ADD MEMBER ERROR]', err.code, err.message, err);
+        if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || (err.message && err.message.includes('unique'))) {
+            return res.status(400).json({ error: 'Ce numéro de téléphone est déjà pris.' });
+        }
+        res.status(500).json({ error: "Erreur serveur: " + err.message });
     }
 });
 

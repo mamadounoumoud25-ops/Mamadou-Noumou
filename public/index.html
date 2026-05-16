@@ -119,70 +119,70 @@
                             style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
                             <div class="stat-card glass">
                                 <div class="stat-label">Total Membres</div>
-                                <div class="stat-value" id="stat-total-members" style="font-size: 1.8rem;">-</div>
+                                <div class="stat-value" id="stat-total-members" style="font-size: 1.4rem;">-</div>
                             </div>
                             <div class="stat-card glass">
                                 <div class="stat-label">Membres Actifs</div>
-                                <div class="stat-value" id="stat-active-members" style="font-size: 1.8rem;">-</div>
+                                <div class="stat-value" id="stat-active-members" style="font-size: 1.4rem;">-</div>
                             </div>
                             <div class="stat-card glass">
                                 <div class="stat-label">Caisse (Solde Net)</div>
-                                <div class="stat-value" id="stat-net" style="color: #818cf8; font-size: 1.8rem;">-</div>
+                                <div class="stat-value" id="stat-net" style="color: #818cf8; font-size: 1.4rem;">-</div>
                             </div>
                             <div class="stat-card glass">
                                 <div class="stat-label">Total Recettes</div>
                                 <div class="stat-value" id="stat-total-finance"
-                                    style="color: #4ade80; font-size: 1.8rem;">-</div>
+                                    style="color: #4ade80; font-size: 1.4rem;">-</div>
                             </div>
                             <div class="stat-card glass">
                                 <div class="stat-label">Total Dépenses</div>
                                 <div class="stat-value" id="stat-total-depenses"
-                                    style="color: #f87171; font-size: 1.8rem;">-</div>
+                                    style="color: #f87171; font-size: 1.4rem;">-</div>
                             </div>
                             <div class="stat-card glass">
                                 <div class="stat-label">Reste à Recouvrer</div>
                                 <div class="stat-value" id="stat-total-reste"
-                                    style="color: #f87171; font-size: 1.8rem;">-</div>
+                                    style="color: #f87171; font-size: 1.4rem;">-</div>
                             </div>
                             <div class="stat-card glass">
                                 <div class="stat-label">Total Inscriptions</div>
                                 <div class="stat-value" id="stat-total-inscriptions"
-                                    style="color: #818cf8; font-size: 1.8rem;">-</div>
+                                    style="color: #818cf8; font-size: 1.4rem;">-</div>
                             </div>
                             <div class="stat-card glass">
                                 <div class="stat-label">Total Amendes</div>
                                 <div class="stat-value" id="stat-total-amandes"
-                                    style="color: #fbbf24; font-size: 1.8rem;">-</div>
+                                    style="color: #fbbf24; font-size: 1.4rem;">-</div>
                             </div>
                             <div class="stat-card glass">
                                 <div class="stat-label">Amendes Réunion</div>
-                                <div class="stat-value" id="stat-am-reunion" style="color: #fbbf24; font-size: 1.8rem;">
+                                <div class="stat-value" id="stat-am-reunion" style="color: #fbbf24; font-size: 1.4rem;">
                                     -</div>
                             </div>
                             <div class="stat-card glass">
                                 <div class="stat-label">Amendes Travail</div>
-                                <div class="stat-value" id="stat-am-travail" style="color: #fbbf24; font-size: 1.8rem;">
+                                <div class="stat-value" id="stat-am-travail" style="color: #fbbf24; font-size: 1.4rem;">
                                     -</div>
                             </div>
                             <div class="stat-card glass">
                                 <div class="stat-label">Amendes Indiscipline</div>
                                 <div class="stat-value" id="stat-am-indiscipline"
-                                    style="color: #fbbf24; font-size: 1.8rem;">-</div>
+                                    style="color: #fbbf24; font-size: 1.4rem;">-</div>
                             </div>
                         </div>
 
                         <!-- Charts SECTION -->
-                        <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 30px;">
-                            <div class="chart-container glass" style="padding: 20px; height: 350px;">
-                                <h4 style="margin-bottom: 15px; font-size: 0.9rem; color: var(--text-dim);">Revenus vs Dépenses</h4>
+                        <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 25px;">
+                            <div class="chart-container glass" style="padding: 15px; height: 280px;">
+                                <h4 style="margin-bottom: 10px; font-size: 0.85rem; color: var(--text-dim);">Revenus vs Dépenses</h4>
                                 <canvas id="chart-bar"></canvas>
                             </div>
-                            <div class="chart-container glass" style="padding: 20px; height: 350px;">
-                                <h4 style="margin-bottom: 15px; font-size: 0.9rem; color: var(--text-dim);">Répartition des Dépenses</h4>
+                            <div class="chart-container glass" style="padding: 15px; height: 280px;">
+                                <h4 style="margin-bottom: 10px; font-size: 0.85rem; color: var(--text-dim);">Répartition des Dépenses</h4>
                                 <canvas id="chart-pie"></canvas>
                             </div>
-                            <div class="chart-container glass" style="padding: 20px; height: 350px; grid-column: 1 / -1;">
-                                <h4 style="margin-bottom: 15px; font-size: 0.9rem; color: var(--text-dim);">Évolution Financière Mensuelle</h4>
+                            <div class="chart-container glass" style="padding: 15px; height: 280px; grid-column: 1 / -1;">
+                                <h4 style="margin-bottom: 10px; font-size: 0.85rem; color: var(--text-dim);">Évolution Financière Mensuelle</h4>
                                 <canvas id="chart-line"></canvas>
                             </div>
                         </div>
@@ -234,7 +234,7 @@
                 <section id="page-members" class="hidden">
                     <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
                             <div style="display: flex; gap: 10px;">
-                                <button class="btn-primary" onclick="openAddMemberModal()">+ Ajouter un Membre</button>
+                                <button class="btn-primary" onclick="addMember()">+ Ajouter un Membre</button>
                                 <button class="btn-secondary btn-csv" onclick="exportMembersToExcel()">📉 Exporter Excel</button>
                             </div>
                         <button class="btn-primary btn-csv" onclick="exportTableToCSV('members-list', 'Membres.csv')"
@@ -286,7 +286,7 @@
                 <section id="page-cotisations" class="hidden">
                     <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
                             <div style="display: flex; gap: 10px;">
-                                <button class="btn-primary" onclick="openAddCotisModal()">+ Enregistrer un Paiement</button>
+                                <button class="btn-primary" onclick="addCotis()">+ Enregistrer un Paiement</button>
                                 <button class="btn-secondary btn-csv" onclick="exportCotisToExcel()">📉 Exporter Excel</button>
                             </div>
                         <button class="btn-primary btn-csv" onclick="exportTableToCSV('cotis-list', 'Cotisations.csv')"

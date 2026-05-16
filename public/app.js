@@ -560,6 +560,7 @@ async function renderCharts() {
     });
 
     const c = state.settings.currency || 'FG';
+    const ctxBar = document.getElementById('chart-bar').getContext('2d');
     barChartInstance = new Chart(ctxBar, {
         type: 'bar',
         data: {
@@ -1605,7 +1606,7 @@ window.remindWhatsApp = (phone, amount, month) => {
 // --- Settings & Premium Features ---
 async function loadSettings() {
     try {
-        const res = await fetch('/api/system/settings');
+        const res = await fetch('/api/settings');
         if (res.ok) {
             state.settings = await res.json();
             applySettings();
@@ -1670,7 +1671,7 @@ async function handleSettingsSubmit(e) {
     });
 
     try {
-        const res = await fetch('/api/system/settings', {
+        const res = await fetch('/api/settings', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updates)
