@@ -1870,6 +1870,7 @@ window.exportPDF = async () => {
     });
 
     // Liste des membres actifs
+    const members = await fetchAPI('/api/members') || [];
     const activeMembers = members.filter(m => m.statut === 'actif');
     doc.text('Liste des Membres Actifs', 20, doc.lastAutoTable.finalY + 15);
 
