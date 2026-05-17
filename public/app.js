@@ -687,6 +687,36 @@ async function loadMemberProfile(id = null) {
     statusBadge.textContent = u.statut;
     statusBadge.className = `badge ${u.statut}`;
 
+    const infoDetails = document.getElementById('my-info-details');
+    if (infoDetails) {
+        infoDetails.innerHTML = `
+            <div>
+                <span style="display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px;">Nom</span>
+                <strong style="color: var(--text-main);">${u.nom}</strong>
+            </div>
+            <div>
+                <span style="display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px;">Prénom</span>
+                <strong style="color: var(--text-main);">${u.prenom}</strong>
+            </div>
+            <div>
+                <span style="display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px;">Téléphone</span>
+                <strong style="color: var(--text-main);">${u.telephone || 'Non renseigné'}</strong>
+            </div>
+            <div>
+                <span style="display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px;">Email</span>
+                <strong style="color: var(--text-main);">${u.email || 'Non renseigné'}</strong>
+            </div>
+            <div>
+                <span style="display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px;">Adresse</span>
+                <strong style="color: var(--text-main);">${u.adresse || 'Non renseignée'}</strong>
+            </div>
+            <div>
+                <span style="display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px;">Date d'Adhésion</span>
+                <strong style="color: var(--text-main);">${u.date_adhesion || 'Non renseignée'}</strong>
+            </div>
+        `;
+    }
+
     // Render Unified History
     const historyList = document.getElementById('my-history-list');
     const combinedHistory = [
