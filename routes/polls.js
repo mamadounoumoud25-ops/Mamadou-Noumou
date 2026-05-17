@@ -24,7 +24,7 @@ router.get('/', authenticate, async (req, res) => {
             `).all(poll.id);
             
             // If user has voted or poll is closed, include who voted what for transparency (as per user choice)
-            if (poll.user_voted_option || poll.statut === 'cloture') {
+            if (req.user.role === 'admin' || poll.user_voted_option || poll.statut === 'cloture') {
                 for (const opt of poll.options) {
                     opt.voters = await db.prepare(`
                         SELECT m.nom, m.prenom 

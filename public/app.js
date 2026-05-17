@@ -1022,7 +1022,8 @@ window.castVote = async (pollId, optionId) => {
     try {
         await fetchAPI(`/api/polls/${pollId}/vote`, {
             method: 'POST',
-            body: { optionId }
+            body: JSON.stringify({ optionId }),
+            headers: { 'Content-Type': 'application/json' }
         });
         showToast("Votre vote a été enregistré.", "success");
         loadPolls();
