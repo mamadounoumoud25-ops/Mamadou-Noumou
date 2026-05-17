@@ -56,6 +56,9 @@ router.post('/', authenticate, async (req, res) => {
             .run(titre, description, new Date().toISOString(), date_expiration || null, req.user.id);
         
         const pollId = result.lastInsertRowid;
+        if (!pollId) {
+            throw new Error("Impossible de récupérer l'ID du sondage créé (lastInsertRowid est null).");
+        }
         for (const optText of options) {
             await db.prepare('INSERT INTO sondage_options (sondage_id, texte) VALUES (?, ?)').run(pollId, optText);
         }
