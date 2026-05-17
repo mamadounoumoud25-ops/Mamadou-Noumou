@@ -1380,7 +1380,7 @@ function renderMeetings(items, page = 1) {
 
 async function markAttendance(meetingId) {
     const members = await fetchAPI('/api/members');
-    const attendance = await fetchAPI(`/api/attendance/${meetingId}`);
+    const attendance = await fetchAPI(`/api/meetings/${meetingId}/attendance`);
 
     const meeting = state.data.meetings.find(m => m.id === meetingId) || {};
     const isSpecial = meeting.type !== 'Réunion';
@@ -1416,7 +1416,7 @@ async function markAttendance(meetingId) {
 }
 
 async function updateAttendance(meetingId, memberId, value) {
-    await fetchAPI('/api/attendance', {
+    await fetchAPI('/api/meetings/attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ meetingId, memberId, present: parseInt(value) })
@@ -1427,7 +1427,7 @@ window.markAllPresent = (meetingId) => {
     showConfirm('Confirmation', 'Marquer tous les membres comme présents ?', async () => {
         const members = await fetchAPI('/api/members');
         for (const m of members) {
-            await fetchAPI('/api/attendance', {
+            await fetchAPI('/api/meetings/attendance', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ meetingId, memberId: m.id, present: 1 })
