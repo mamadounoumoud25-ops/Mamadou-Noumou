@@ -66,7 +66,8 @@ router.post('/', authenticate, async (req, res) => {
 
         res.json({ id: pollId });
     } catch (err) {
-        res.status(500).json({ error: 'Erreur lors de la création' });
+        console.error("Error creating poll:", err);
+        res.status(500).json({ error: 'Erreur lors de la création: ' + err.message });
     }
 });
 
@@ -79,6 +80,8 @@ router.post('/:id/vote', authenticate, async (req, res) => {
 
     try {
         const poll = await db.prepare('SELECT statut, date_expiration FROM sondages WHERE id = ?').get(pollId);
+        if (!poll) return res.status(404).json({ error: 'Vote non trouvé' });
+
         if (poll.statut === 'cloture' || (poll.date_expiration && new Date(poll.date_expiration) < new Date())) {
             return res.status(400).json({ error: 'Ce vote est terminé' });
         }
