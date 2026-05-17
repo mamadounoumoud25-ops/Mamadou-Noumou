@@ -999,7 +999,8 @@ window.openCreatePollModal = () => {
 
         await fetchAPI('/api/polls', {
             method: 'POST',
-            body: { titre, description, options, date_expiration }
+            body: JSON.stringify({ titre, description, options, date_expiration }),
+            headers: { 'Content-Type': 'application/json' }
         });
         showToast("Le vote a été lancé !", "success");
         loadPolls();
