@@ -1,10 +1,13 @@
-const CACHE_NAME = 'ujad-v11';
+const CACHE_NAME = 'ujad-v12';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/style.css',
     '/app.js',
     '/manifest.json',
+    '/logo.png',
+    '/favicon.ico',
+    '/icon-192.png',
     '/icon-512.png'
 ];
 

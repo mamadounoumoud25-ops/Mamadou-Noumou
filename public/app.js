@@ -31,6 +31,31 @@ let lineChartInstance = null;
 let currentCalendarDate = new Date(); // Month/Year for the attendance calendar
 let attendanceHistory = []; // Cache for current member's attendance
 let chatInterval = null; // To handle chat polling
+let deferredPrompt = null;
+
+// Handle PWA installation prompt
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the mini-infobar from appearing on mobile
+    e.preventDefault();
+    // Stash the event so it can be triggered later.
+    deferredPrompt = e;
+    // Show the install buttons
+    const installBtn = document.getElementById('pwa-install-btn');
+    if (installBtn) {
+        installBtn.classList.remove('hidden');
+    }
+    const loginInstallBtn = document.getElementById('pwa-login-install-container');
+    if (loginInstallBtn) {
+        loginInstallBtn.classList.remove('hidden');
+    }
+});
+
+window.addEventListener('appinstalled', (evt) => {
+    console.log('UJAD app was installed.');
+    showToast('Application installée avec succès !', 'success');
+    document.getElementById('pwa-install-btn')?.classList.add('hidden');
+    document.getElementById('pwa-login-install-container')?.classList.add('hidden');
+});
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -53,6 +78,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 const setupEventListeners = () => {
+    document.getElementById('pwa-install-btn')?.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User choice: ${outcome}`);
+            deferredPrompt = null;
+            document.getElementById('pwa-install-btn')?.classList.add('hidden');
+            document.getElementById('pwa-login-install-container')?.classList.add('hidden');
+        }
+    });
+
+    document.getElementById('pwa-login-install-btn')?.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User choice: ${outcome}`);
+            deferredPrompt = null;
+            document.getElementById('pwa-install-btn')?.classList.add('hidden');
+            document.getElementById('pwa-login-install-container')?.classList.add('hidden');
+        }
+    });
+
     document.getElementById('login-form')?.addEventListener('submit', handleLogin);
     document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
     document.getElementById('backup-btn')?.addEventListener('click', handleBackup);

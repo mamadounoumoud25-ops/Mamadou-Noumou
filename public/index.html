@@ -18,7 +18,7 @@
     <meta name="msapplication-TileImage" content="/icon-192.png">
     <title>U.J.A.D.L.S - Gestion des Membres</title>
     <link rel="icon" type="image/png" href="/icon-512.png">
-    <link rel="stylesheet" href="style.css?v=1.6">
+    <link rel="stylesheet" href="style.css?v=2.0">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
         // Theme Failsafe: Apply immediately to prevent flash
@@ -60,6 +60,7 @@
                     <div class="nav-item admin-only hidden" data-page="settings">⚙️ Paramètres</div>
                     <div class="nav-item" data-page="reglement">📜 Règlement</div>
                     <div class="logout-container">
+                        <div class="nav-item install-btn hidden" id="pwa-install-btn">📲 Installer l'application</div>
                         <div class="nav-item" id="backup-btn" style="color: #34d399; font-size: 0.9rem;">⬇️ Sauvegarder les données</div>
                         <div class="nav-item logout-link" id="logout-btn" style="color: var(--danger);">🚪 Déconnexion
                         </div>
@@ -673,6 +674,9 @@
                             style="color: var(--primary); text-decoration: none;">Mot de passe oublié ?</a>
                     </p>
                 </div>
+                <div class="input-group hidden" id="pwa-login-install-container">
+                    <button type="button" class="btn-primary install-btn" id="pwa-login-install-btn" style="width: 100%;">📲 Installer l'application</button>
+                </div>
                 <p id="login-error" style="color: #ef4444; margin-top: 15px;" class="hidden"></p>
             </form>
         </div>
@@ -700,7 +704,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <script src="app.js?v=2.2"></script>
+    <script src="app.js?v=3.0"></script>
 </body>
 
 </html>
