@@ -960,7 +960,12 @@ async function loadPolls() {
             <div class="glass poll-card">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <span class="poll-statut ${isClosed ? 'cloture' : 'ouvert'}">${isClosed ? 'Terminé' : 'En cours'}</span>
-                    ${state.user.role === 'admin' && !isClosed ? `<button class="btn-small btn-danger" onclick="closePoll(${p.id})">Clôturer</button>` : ''}
+                    ${state.user.role === 'admin' ? `
+                        <div style="display: flex; gap: 5px;">
+                            ${!isClosed ? `<button class="btn-small btn-danger" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;" onclick="closePoll(${p.id})">Clôturer</button>` : ''}
+                            <button class="btn-small btn-danger" onclick="deletePoll(${p.id})" title="Supprimer ce vote">🗑️</button>
+                        </div>
+                    ` : ''}
                 </div>
                 <h3 style="margin:0;">${p.titre}</h3>
                 <p style="font-size: 0.85rem; color: var(--text-dim);">${p.description || ''}</p>
@@ -1084,6 +1089,17 @@ window.closePoll = async (id) => {
     try {
         await fetchAPI(`/api/polls/${id}/close`, { method: 'POST' });
         loadPolls();
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+};
+
+window.deletePoll = async (id) => {
+    if (!confirm("Voulez-vous vraiment supprimer ce vote ? Cette action est irréversible.")) return;
+    try {
+        await fetchAPI(`/api/polls/${id}`, { method: 'DELETE' });
+        loadPolls();
+        showToast("Le vote a été supprimé.", "success");
     } catch (err) {
         showToast(err.message, "error");
     }

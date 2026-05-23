@@ -108,4 +108,22 @@ router.post('/:id/close', authenticate, async (req, res) => {
     res.json({ success: true });
 });
 
+// --- Delete Poll ---
+router.delete('/:id', authenticate, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Action non autorisée' });
+    try {
+        const pollId = req.params.id;
+        // The foreign keys in sondage_options and sondage_votes might not have ON DELETE CASCADE,
+        // so we delete them manually to avoid foreign key constraints errors, or rely on them if they exist.
+        // It's safer to delete them explicitly:
+        await db.prepare('DELETE FROM sondage_votes WHERE sondage_id = ?').run(pollId);
+        await db.prepare('DELETE FROM sondage_options WHERE sondage_id = ?').run(pollId);
+        await db.prepare('DELETE FROM sondages WHERE id = ?').run(pollId);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Error deleting poll:", err);
+        res.status(500).json({ error: 'Erreur lors de la suppression' });
+    }
+});
+
 module.exports = router;
