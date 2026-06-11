@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ujad-v14';
+const CACHE_NAME = 'ujad-v15';
 const STATIC_ASSETS = [
     '/',
     '/index.html',

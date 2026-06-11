@@ -434,6 +434,26 @@ window.editMyProfile = () => {
                 <label class="input-label">Nouvelle photo</label>
                 <input type="file" id="my-photo" accept="image/*" class="modal-input" style="padding: 8px;">
             </div>
+            <div>
+                <label class="input-label">Nom</label>
+                <input type="text" id="my-nom" class="modal-input" value="${u.nom || ''}" required>
+            </div>
+            <div>
+                <label class="input-label">Prénom</label>
+                <input type="text" id="my-prenom" class="modal-input" value="${u.prenom || ''}" required>
+            </div>
+            <div>
+                <label class="input-label">Téléphone</label>
+                <input type="text" id="my-tel" class="modal-input" value="${u.telephone || ''}">
+            </div>
+            <div>
+                <label class="input-label">Email</label>
+                <input type="email" id="my-email" class="modal-input" value="${u.email || ''}">
+            </div>
+            <div class="full-width">
+                <label class="input-label">Adresse</label>
+                <input type="text" id="my-adresse" class="modal-input" value="${u.adresse || ''}">
+            </div>
             <div class="full-width">
                 <label class="input-label">Nouveau Mot de Passe (laisser vide pour ne pas changer)</label>
                 <input type="password" id="my-pass" class="modal-input" placeholder="••••••••">
@@ -447,13 +467,12 @@ window.editMyProfile = () => {
         const fileInput = document.getElementById('my-photo');
         if (fileInput.files.length > 0) formData.append('photo', fileInput.files[0]);
 
-        // Just sending photo and password. The backend is PUT /api/members/:id 
-        // We must also send required fields to not break backend validation.
-        formData.append('nom', u.nom);
-        formData.append('prenom', u.prenom);
-        formData.append('telephone', u.telephone || '');
-        formData.append('email', u.email || '');
-        formData.append('adresse', u.adresse || '');
+        // Send all required fields
+        formData.append('nom', document.getElementById('my-nom').value);
+        formData.append('prenom', document.getElementById('my-prenom').value);
+        formData.append('telephone', document.getElementById('my-tel').value);
+        formData.append('email', document.getElementById('my-email').value);
+        formData.append('adresse', document.getElementById('my-adresse').value);
         formData.append('date_adhesion', u.date_adhesion || '');
         formData.append('role', u.role);
         formData.append('statut', u.statut);
