@@ -1269,6 +1269,26 @@ window.exportAmandesToExcel = () => {
     downloadExcel(data, "Amandes_UJAD.xlsx");
 };
 
+window.exportMeetingsToExcel = () => {
+    const data = state.data.meetings.map(m => ({
+        'Date': m.date,
+        'Type': m.type,
+        'Thème': m.theme,
+        'Lieu': m.lieu
+    }));
+    downloadExcel(data, "Reunions_UJAD.xlsx");
+};
+
+window.exportDepensesToExcel = () => {
+    const data = state.data.depenses.map(d => ({
+        'Date': d.date,
+        'Description': d.description,
+        'Montant': d.montant,
+        'Catégorie': d.categorie || 'Non catégorisé'
+    }));
+    downloadExcel(data, "Depenses_UJAD.xlsx");
+};
+
 function downloadExcel(jsonBody, filename) {
     const ws = XLSX.utils.json_to_sheet(jsonBody);
     const wb = XLSX.utils.book_new();

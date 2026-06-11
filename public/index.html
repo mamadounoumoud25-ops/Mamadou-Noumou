@@ -211,25 +211,7 @@
                     </div>
                 </section>
 
-                <!-- Profile (non-admin) -->
-                <section id="page-profile" class="hidden">
-                    <div class="stats-grid">
-                        <div class="stat-card glass">
-                            <div class="stat-label">Mes Cotisations</div>
-                            <div class="stat-value" id="stat-my-cotis">-</div>
-                        </div>
-                        <div class="stat-card glass">
-                            <div class="stat-label">Mon Reste à Payer</div>
-                            <div class="stat-value" id="stat-my-reste" style="color: #f87171;">-</div>
-                        </div>
-                    </div>
-                    <div class="glass" style="padding: 24px; margin-top: 20px;">
-                        <h3>Mes Informations</h3>
-                        <div id="my-info-details"
-                            style="margin-top: 15px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); display: grid; gap: 20px; color: var(--text-dim);">
-                        </div>
-                    </div>
-                </section>
+
 
                 <!-- Members -->
                 <section id="page-members" class="hidden">
@@ -262,8 +244,10 @@
                 <!-- Meetings -->
                 <section id="page-meetings" class="hidden">
                     <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn-primary" onclick="addMeeting()" style="width: auto;">+ Nouvelle
-                            Réunion</button>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn-primary" onclick="addMeeting()">+ Nouvelle Réunion</button>
+                            <button class="btn-secondary btn-csv" onclick="exportMeetingsToExcel()">📉 Exporter Excel</button>
+                        </div>
                         <button class="btn-primary btn-csv" onclick="exportTableToCSV('meetings-list', 'Reunions.csv')"
                             style="width: auto; background: #10b981;">⬇️ Export CSV</button>
                     </div>
@@ -314,8 +298,10 @@
                 <!-- Depenses -->
                 <section id="page-depenses" class="hidden">
                     <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn-primary" onclick="addExpense()" style="width: auto;">+ Enregistrer une
-                            Dépense</button>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn-primary" onclick="addExpense()">+ Enregistrer une Dépense</button>
+                            <button class="btn-secondary btn-csv" onclick="exportDepensesToExcel()">📉 Exporter Excel</button>
+                        </div>
                         <button class="btn-primary btn-csv" onclick="exportTableToCSV('expenses-list', 'Depenses.csv')"
                             style="width: auto; background: #10b981;">⬇️ Export CSV</button>
                         <input type="text" id="expense-search" placeholder="Rechercher une dépense..."
@@ -341,8 +327,10 @@
                 <!-- Amendes -->
                 <section id="page-amandes" class="hidden">
                     <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn-primary" onclick="addAmande()" style="width: auto;">+ Enregistrer une
-                            Amende</button>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn-primary" onclick="addAmande()">+ Enregistrer une Amende</button>
+                            <button class="btn-secondary btn-csv" onclick="exportAmandesToExcel()">📉 Exporter Excel</button>
+                        </div>
                         <button class="btn-primary btn-csv" onclick="exportTableToCSV('amandes-list', 'Amendes.csv')"
                             style="width: auto; background: #10b981;">⬇️ Export CSV</button>
                         <input type="text" id="amande-search" placeholder="Rechercher une amende..." class="modal-input"
@@ -458,6 +446,16 @@
 
                 <!-- Profil -->
                 <section id="page-profile" class="hidden">
+                    <div class="stats-grid" style="margin-bottom: 20px;">
+                        <div class="stat-card glass">
+                            <div class="stat-label">Mes Cotisations</div>
+                            <div class="stat-value" id="stat-my-cotis">-</div>
+                        </div>
+                        <div class="stat-card glass">
+                            <div class="stat-label">Mon Reste à Payer</div>
+                            <div class="stat-value" id="stat-my-reste" style="color: #f87171;">-</div>
+                        </div>
+                    </div>
                     <div class="glass"
                         style="max-width: 600px; margin: 0 auto; padding: 30px; border-radius: 12px; text-align: center;">
                         <div id="profile-photo-container" style="margin-bottom: 20px;">
