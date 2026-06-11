@@ -1857,6 +1857,8 @@ window.addMember = () => {
             <div class="full-width"><label class="input-label">Choisir une image</label><input type="file" id="m-photo" accept="image/*" class="modal-input" style="padding: 8px;"></div>
             <div class="form-group-title">Coordination</div>
             <div><label class="input-label">Téléphone</label><input type="text" id="m-tel" class="modal-input"></div>
+            <div><label class="input-label">Email</label><input type="email" id="m-email" class="modal-input"></div>
+            <div class="full-width"><label class="input-label">Adresse</label><input type="text" id="m-adresse" class="modal-input"></div>
             <div><label class="input-label">Rôle</label><select id="m-role" class="modal-input"><option value="membre">Membre</option><option value="admin">Admin</option></select></div>
             <div>
                 <label class="input-label">Inscription (7000 FG)</label>
@@ -1872,6 +1874,8 @@ window.addMember = () => {
         formData.append('nom', document.getElementById('m-nom').value);
         formData.append('prenom', document.getElementById('m-prenom').value);
         formData.append('telephone', document.getElementById('m-tel').value);
+        formData.append('email', document.getElementById('m-email').value);
+        formData.append('adresse', document.getElementById('m-adresse').value);
         formData.append('password', document.getElementById('m-pass').value);
         formData.append('role', document.getElementById('m-role').value);
         formData.append('statut', 'actif');
@@ -1914,6 +1918,8 @@ window.editMember = async (id) => {
             </div>
             <div class="form-group-title">Coordination</div>
             <div><label class="input-label">Téléphone</label><input type="text" id="m-tel" value="${m.telephone || ''}" class="modal-input"></div>
+            <div><label class="input-label">Email</label><input type="email" id="m-email" value="${m.email || ''}" class="modal-input"></div>
+            <div class="full-width"><label class="input-label">Adresse</label><input type="text" id="m-adresse" value="${m.adresse || ''}" class="modal-input"></div>
             <div><label class="input-label">Statut</label><select id="m-statut" class="modal-input"><option value="actif" ${m.statut === 'actif' ? 'selected' : ''}>Actif</option><option value="inactif" ${m.statut === 'inactif' ? 'selected' : ''}>Inactif</option></select></div>
             <div>
                 <label class="input-label">Inscription (7000 FG)</label>
@@ -1929,6 +1935,8 @@ window.editMember = async (id) => {
         formData.append('nom', document.getElementById('m-nom').value);
         formData.append('prenom', document.getElementById('m-prenom').value);
         formData.append('telephone', document.getElementById('m-tel').value);
+        formData.append('email', document.getElementById('m-email').value);
+        formData.append('adresse', document.getElementById('m-adresse').value);
         formData.append('statut', document.getElementById('m-statut').value);
         formData.append('inscription_payee', parseInt(document.getElementById('m-ins').value));
         formData.append('role', m.role); // Maintain role 
