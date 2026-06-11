@@ -451,6 +451,13 @@ window.editMyProfile = () => {
         // We must also send required fields to not break backend validation.
         formData.append('nom', u.nom);
         formData.append('prenom', u.prenom);
+        formData.append('telephone', u.telephone || '');
+        formData.append('email', u.email || '');
+        formData.append('adresse', u.adresse || '');
+        formData.append('date_adhesion', u.date_adhesion || '');
+        formData.append('role', u.role);
+        formData.append('statut', u.statut);
+        formData.append('inscription_payee', u.inscription_payee || 0);
 
         try {
             await fetchAPI(`/api/members/${u.id}`, { method: 'PUT', body: formData });
